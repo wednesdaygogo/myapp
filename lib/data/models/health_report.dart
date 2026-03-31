@@ -1,19 +1,29 @@
-import 'package:isar/isar.dart';
-import 'person.dart';
+import 'package:hive/hive.dart';
 
 part 'health_report.g.dart';
 
-@Collection()
-class HealthReport {
-  Id id = Isar.autoIncrement;
+@HiveType(typeId: 1)
+class HealthReport extends HiveObject {
+  @HiveField(4)
+  int id;
 
-  @Index()
-  int personId = 0;
+  @HiveField(0)
+  int personId;
 
-  DateTime reportDate = DateTime.now();
-  String source = 'manual'; // 'pdf' or 'manual'
+  @HiveField(1)
+  DateTime reportDate;
+
+  @HiveField(2)
+  String source;
+
+  @HiveField(3)
   String? pdfPath;
 
-  // Link to person
-  final person = IsarLink<Person>();
+  HealthReport({
+    this.id = 0,
+    required this.personId,
+    required this.reportDate,
+    this.source = 'manual',
+    this.pdfPath,
+  });
 }

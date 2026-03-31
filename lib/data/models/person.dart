@@ -1,22 +1,44 @@
-import 'package:isar/isar.dart';
+import 'package:hive/hive.dart';
 
 part 'person.g.dart';
 
-@Collection()
-class Person {
-  Id id = Isar.autoIncrement;
+@HiveType(typeId: 0)
+class Person extends HiveObject {
+  @HiveField(7)
+  int id;
 
-  @Index()
-  String name = ''; // Required
+  @HiveField(0)
+  String name;
 
-  String? gender; // '男', '女', '其他'
+  @HiveField(1)
+  String? gender;
+
+  @HiveField(2)
   DateTime? birthDate;
-  String? idNumber;
-  String? phone;
-  String? photoPath;
-  String? relationship; // '本人', '配偶', '父亲', '母亲', etc.
 
-  // Computed age (not stored)
+  @HiveField(3)
+  String? idNumber;
+
+  @HiveField(4)
+  String? phone;
+
+  @HiveField(5)
+  String? photoPath;
+
+  @HiveField(6)
+  String? relationship;
+
+  Person({
+    this.id = 0,
+    required this.name,
+    this.gender,
+    this.birthDate,
+    this.idNumber,
+    this.phone,
+    this.photoPath,
+    this.relationship,
+  });
+
   int get age {
     if (birthDate == null) return 0;
     final now = DateTime.now();

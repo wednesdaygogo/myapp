@@ -2,37 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
-
-// Placeholder pages
-class PersonListPage extends StatelessWidget {
-  const PersonListPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('家人管理')),
-      body: const Center(child: Text('家人列表 - 待实现')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.go('/persons/new'),
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-}
-
-class ReportListPage extends StatelessWidget {
-  const ReportListPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('体检报告')),
-      body: const Center(child: Text('报告列表 - 待实现')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.go('/reports/import'),
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-}
+import '../../features/person/ui/pages/person_list_page.dart';
+import '../../features/person/ui/pages/person_detail_page.dart';
+import '../../features/person/ui/pages/person_form_page.dart';
+import '../../features/health_report/ui/pages/report_list_page.dart';
+import '../../features/health_report/ui/pages/report_detail_page.dart';
+import '../../features/health_report/ui/pages/report_import_page.dart';
 
 // Shell with bottom navigation
 class MainShell extends StatelessWidget {
@@ -86,9 +61,21 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/persons/new',
-            builder: (context, state) => const Scaffold(
-              body: Center(child: Text('新增家人')),
-            ),
+            builder: (context, state) => const PersonFormPage(),
+          ),
+          GoRoute(
+            path: '/persons/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+              return PersonDetailPage(personId: id);
+            },
+          ),
+          GoRoute(
+            path: '/persons/:id/edit',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+              return PersonFormPage(personId: id);
+            },
           ),
           GoRoute(
             path: '/reports',
@@ -96,9 +83,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/reports/import',
-            builder: (context, state) => const Scaffold(
-              body: Center(child: Text('导入报告')),
-            ),
+            builder: (context, state) => const ReportImportPage(),
+          ),
+          GoRoute(
+            path: '/reports/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+              return ReportDetailPage(reportId: id);
+            },
           ),
         ],
       ),

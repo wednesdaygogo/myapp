@@ -1,31 +1,37 @@
-import 'package:isar/isar.dart';
+import 'package:hive/hive.dart';
 
 part 'health_indicator.g.dart';
 
-enum IndicatorType {
-  bloodGlucose,
-  bloodPressure,
-  bloodLipidTC,
-  bloodLipidTG,
-  bloodLipidHDL,
-  bloodLipidLDL,
-}
+@HiveType(typeId: 2)
+class HealthIndicator extends HiveObject {
+  @HiveField(6)
+  int id;
 
-@Collection()
-class HealthIndicator {
-  Id id = Isar.autoIncrement;
+  @HiveField(0)
+  int reportId;
 
-  @Index()
-  int reportId = 0;
+  @HiveField(1)
+  String type;
 
-  // Indicator type (store enum as ordinal in Isar)
-  @Enumerated(EnumType.ordinal)
-  IndicatorType type = IndicatorType.bloodGlucose;
+  @HiveField(2)
+  double value;
 
-  double value = 0.0;
-  String unit = ''; // 'mmol/L', 'mmHg'
-  bool isAbnormal = false;
-
-  // For blood pressure (systolic/diastolic)
+  @HiveField(3)
   double? secondValue;
+
+  @HiveField(4)
+  String unit;
+
+  @HiveField(5)
+  bool isAbnormal;
+
+  HealthIndicator({
+    this.id = 0,
+    required this.reportId,
+    required this.type,
+    this.value = 0,
+    this.secondValue,
+    this.unit = '',
+    this.isAbnormal = false,
+  });
 }

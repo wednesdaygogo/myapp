@@ -1,27 +1,21 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/models/person.dart';
-import '../../../data/repositories/person_repository.dart';
 
-// Repository provider - must be overridden with actual Isar instance
-final personRepositoryProvider = Provider<PersonRepository>((ref) {
-  throw UnimplementedError('Must override with actual Isar instance');
-});
+// In-memory storage
+final _persons = <Person>[];
+int _nextId = 1;
 
 // All persons list
-final personsProvider = FutureProvider<List<Person>>((ref) async {
-  final repository = ref.watch(personRepositoryProvider);
-  return await repository.getAll();
-});
+final personsProvider = StateProvider<List<Person>>((ref) => _persons);
 
 // Selected person ID
 final selectedPersonIdProvider = StateProvider<int?>((ref) => null);
 
-// Selected person detail
-final selectedPersonProvider = FutureProvider<Person?>((ref) async {
+// Selected person
+final selectedPersonProvider = Provider<Person?>((ref) {
   final id = ref.watch(selectedPersonIdProvider);
   if (id == null) return null;
-  final repository = ref.watch(personRepositoryProvider);
-  return await repository.getById(id);
+  return _persons.firstWhere((p) => p.id == id, orElse: () => Person(name: ''));
 });
 
 // Person CRUD notifier
@@ -33,11 +27,11 @@ class PersonNotifier extends StateNotifier<AsyncValue<void>> {
   Future<int?> createPerson(Person person) async {
     state = const AsyncLoading();
     try {
-      final repository = _ref.read(personRepositoryProvider);
-      final id = await repository.insert(person);
+      person.id = _nextId++;
+      _persons.add(person);
       _ref.invalidate(personsProvider);
       state = const AsyncData(null);
-      return id;
+      return person.id;
     } catch (e, st) {
       state = AsyncError(e, st);
       return null;
@@ -47,8 +41,10 @@ class PersonNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> updatePerson(Person person) async {
     state = const AsyncLoading();
     try {
-      final repository = _ref.read(personRepositoryProvider);
-      await repository.update(person);
+      final index = _persons.indexWhere((p) => p.id == person.id);
+      if (index != -1) {
+        _persons[index] = person;
+      }
       _ref.invalidate(personsProvider);
       _ref.invalidate(selectedPersonProvider);
       state = const AsyncData(null);
@@ -62,8 +58,7 @@ class PersonNotifier extends StateNotifier<AsyncValue<void>> {
   Future<bool> deletePerson(int id) async {
     state = const AsyncLoading();
     try {
-      final repository = _ref.read(personRepositoryProvider);
-      await repository.delete(id);
+      _persons.removeWhere((p) => p.id == id);
       _ref.invalidate(personsProvider);
       _ref.invalidate(selectedPersonProvider);
       state = const AsyncData(null);
@@ -83,12 +78,12 @@ final personNotifierProvider =
 // Search/filter providers
 final personSearchQueryProvider = StateProvider<String>((ref) => '');
 
-final filteredPersonsProvider = FutureProvider<List<Person>>((ref) async {
+final filteredPersonsProvider = Provider<List<Person>>((ref) {
   final query = ref.watch(personSearchQueryProvider);
-  final repository = ref.read(personRepositoryProvider);
+  final allPersons = ref.watch(personsProvider);
 
-  if (query.isEmpty) {
-    return await repository.getAll();
-  }
-  return await repository.searchByName(query);
+  if (query.isEmpty) return allPersons;
+  return allPersons
+      .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
+      .toList();
 });

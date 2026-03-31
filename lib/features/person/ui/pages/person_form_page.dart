@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:isar/isar.dart';
 import '../../providers/person_provider.dart';
 import '../../../../data/models/person.dart';
 
@@ -27,7 +26,7 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
     if (widget.personId != null) {
       Future.microtask(() {
         ref.read(selectedPersonIdProvider.notifier).state = widget.personId;
-        final person = ref.read(selectedPersonProvider).value;
+        final person = ref.read(selectedPersonProvider);
         if (person != null) {
           _nameController.text = person.name;
           _phoneController.text = person.phone ?? '';
@@ -42,13 +41,14 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
   Future<void> _saveForm() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final person = Person()
-      ..id = widget.personId ?? Isar.autoIncrement
-      ..name = _nameController.text
-      ..gender = _gender
-      ..birthDate = _birthDate
-      ..phone = _phoneController.text.isEmpty ? null : _phoneController.text
-      ..relationship = _relationship;
+    final person = Person(
+      id: widget.personId ?? 0,
+      name: _nameController.text,
+      gender: _gender,
+      birthDate: _birthDate,
+      phone: _phoneController.text.isEmpty ? null : _phoneController.text,
+      relationship: _relationship,
+    );
 
     await ref.read(personNotifierProvider.notifier).createPerson(person);
 
@@ -70,7 +70,7 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
                 decoration: const InputDecoration(labelText: '姓名 *'),
                 validator: (v) => v?.isEmpty == true ? '必填' : null),
             DropdownButtonFormField<String>(
-                initialValue: _gender,
+                value: _gender,
                 items: ['男', '女', '其他']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -94,7 +94,7 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
                 decoration: const InputDecoration(labelText: '电话'),
                 keyboardType: TextInputType.phone),
             DropdownButtonFormField<String>(
-                initialValue: _relationship,
+                value: _relationship,
                 items: ['本人', '配偶', '父亲', '母亲', '子女', '其他']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
