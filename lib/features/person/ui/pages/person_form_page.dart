@@ -50,7 +50,7 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
       relationship: _relationship,
     );
 
-    await ref.read(personNotifierProvider.notifier).createPerson(person);
+    await ref.read(personsProvider.notifier).savePerson(person);
 
     if (!mounted) return;
     context.go('/persons');
@@ -99,7 +99,7 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
                 onChanged: (v) => setState(() => _relationship = v),
-                decoration: const InputDecoration(labelText: '关系')),
+                decoration: const InputDecoration(labelText: '与本人的关系')),
             const SizedBox(height: 20),
             ElevatedButton(onPressed: _saveForm, child: const Text('保存')),
           ],
