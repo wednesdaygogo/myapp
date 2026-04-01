@@ -1,60 +1,80 @@
-import 'package:isar/isar.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models/person.dart';
 import '../models/health_report.dart';
 
+/// Repository for Person data using Hive
 class PersonRepository {
-  final Isar _isar;
+  static const String _boxName = 'persons';
 
-  PersonRepository(this._isar);
+  Box<Person> get _box => Hive.box<Person>(_boxName);
 
-  // Create
-  Future<int> insert(Person person) async {
-    return await _isar.writeTxn(() => _isar.persons.put(person));
+  /// Create or update a person
+  Future<int> save(Person person) async {
+    if (person.id == 0) {
+      // Generate new ID
+      final newId = _box.isEmpty
+          ? 1
+          : _box.keys.cast<int>().reduce((a, b) => a > b ? a : b) + 1;
+      final newPerson = Person(
+        id: newId,
+        name: person.name,
+        gender: person.gender,
+        birthDate: person.birthDate,
+        idNumber: person.idNumber,
+        phone: person.phone,
+        photoPath: person.photoPath,
+        relationship: person.relationship,
+        fatherId: person.fatherId,
+        motherId: person.motherId,
+        spouseId: person.spouseId,
+      );
+      await _box.put(newId, newPerson);
+      return newId;
+    } else {
+      await _box.put(person.id, person);
+      return person.id;
+    }
   }
 
-  // Read all
-  Future<List<Person>> getAll() async {
-    return await _isar.persons.where().findAll();
+  /// Get all persons
+  List<Person> getAll() {
+    return _box.values.toList();
   }
 
-  // Read by ID
-  Future<Person?> getById(int id) async {
-    return await _isar.persons.get(id);
+  /// Get person by ID
+  Person? getById(int id) {
+    return _box.get(id);
   }
 
-  // Update
-  Future<int> update(Person person) async {
-    return await _isar.writeTxn(() => _isar.persons.put(person));
+  /// Delete a person (cascade delete health reports)
+  Future<void> delete(int id) async {
+    // Delete associated health reports
+    final reportBox = Hive.box<HealthReport>('healthReports');
+    final reportsToDelete = reportBox.values
+        .where((r) => r.personId == id)
+        .map((r) => r.id)
+        .toList();
+    for (final reportId in reportsToDelete) {
+      await reportBox.delete(reportId);
+    }
+    // Delete the person
+    await _box.delete(id);
   }
 
-  // Delete with cascade to health reports
-  Future<bool> delete(int id) async {
-    return await _isar.writeTxn(() async {
-      // Delete associated health reports first
-      await _isar.healthReports.filter().personIdEqualTo(id).deleteAll();
-      // Then delete the person
-      return await _isar.persons.delete(id);
-    });
+  /// Search by name
+  List<Person> searchByName(String query) {
+    return _box.values
+        .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
+        .toList();
   }
 
-  // Search by name
-  Future<List<Person>> searchByName(String query) async {
-    return await _isar.persons
-        .filter()
-        .nameContains(query, caseSensitive: false)
-        .findAll();
+  /// Filter by relationship
+  List<Person> filterByRelationship(String relationship) {
+    return _box.values.where((p) => p.relationship == relationship).toList();
   }
 
-  // Filter by relationship
-  Future<List<Person>> filterByRelationship(String relationship) async {
-    return await _isar.persons
-        .filter()
-        .relationshipEqualTo(relationship)
-        .findAll();
-  }
-
-  // Count
-  Future<int> count() async {
-    return await _isar.persons.count();
+  /// Count
+  int count() {
+    return _box.length;
   }
 }

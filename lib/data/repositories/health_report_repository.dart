@@ -1,44 +1,100 @@
-import 'package:isar/isar.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models/health_report.dart';
 import '../models/health_indicator.dart';
 
+/// Repository for HealthReport data using Hive
 class HealthReportRepository {
-  final Isar _isar;
+  static const String _boxName = 'healthReports';
+  static const String _indicatorBoxName = 'healthIndicators';
 
-  HealthReportRepository(this._isar);
+  Box<HealthReport> get _box => Hive.box<HealthReport>(_boxName);
+  Box<HealthIndicator> get _indicatorBox =>
+      Hive.box<HealthIndicator>(_indicatorBoxName);
 
-  Future<int> insert(HealthReport report) async {
-    return await _isar.writeTxn(() => _isar.healthReports.put(report));
+  /// Create or update a report
+  Future<int> save(HealthReport report) async {
+    if (report.id == 0) {
+      final newId = _box.isEmpty
+          ? 1
+          : _box.keys.cast<int>().reduce((a, b) => a > b ? a : b) + 1;
+      final newReport = HealthReport(
+        id: newId,
+        personId: report.personId,
+        reportDate: report.reportDate,
+        source: report.source,
+        pdfPath: report.pdfPath,
+      );
+      await _box.put(newId, newReport);
+      return newId;
+    } else {
+      await _box.put(report.id, report);
+      return report.id;
+    }
   }
 
-  Future<List<HealthReport>> getAll() async {
-    return await _isar.healthReports.where().sortByReportDateDesc().findAll();
+  /// Get all reports sorted by date (newest first)
+  List<HealthReport> getAll() {
+    final reports = _box.values.toList();
+    reports.sort((a, b) => b.reportDate.compareTo(a.reportDate));
+    return reports;
   }
 
-  Future<HealthReport?> getById(int id) async {
-    return await _isar.healthReports.get(id);
+  /// Get report by ID
+  HealthReport? getById(int id) {
+    return _box.get(id);
   }
 
-  Future<List<HealthReport>> getByPersonId(int personId) async {
-    return await _isar.healthReports
-        .filter()
-        .personIdEqualTo(personId)
-        .sortByReportDateDesc()
-        .findAll();
+  /// Get reports by person ID
+  List<HealthReport> getByPersonId(int personId) {
+    final reports = _box.values.where((r) => r.personId == personId).toList();
+    reports.sort((a, b) => b.reportDate.compareTo(a.reportDate));
+    return reports;
   }
 
-  Future<int> update(HealthReport report) async {
-    return await _isar.writeTxn(() => _isar.healthReports.put(report));
+  /// Delete a report (cascade delete indicators)
+  Future<void> delete(int id) async {
+    // Delete associated indicators
+    final indicatorsToDelete = _indicatorBox.values
+        .where((i) => i.reportId == id)
+        .map((i) => i.id)
+        .toList();
+    for (final indicatorId in indicatorsToDelete) {
+      await _indicatorBox.delete(indicatorId);
+    }
+    // Delete the report
+    await _box.delete(id);
   }
 
-  Future<bool> delete(int id) async {
-    return await _isar.writeTxn(() async {
-      await _isar.healthIndicators.filter().reportIdEqualTo(id).deleteAll();
-      return await _isar.healthReports.delete(id);
-    });
+  /// Count reports by person ID
+  int countByPersonId(int personId) {
+    return _box.values.where((r) => r.personId == personId).length;
   }
 
-  Future<int> countByPersonId(int personId) async {
-    return await _isar.healthReports.filter().personIdEqualTo(personId).count();
+  /// Get indicators for a report
+  List<HealthIndicator> getIndicators(int reportId) {
+    return _indicatorBox.values.where((i) => i.reportId == reportId).toList();
+  }
+
+  /// Save an indicator
+  Future<int> saveIndicator(HealthIndicator indicator) async {
+    if (indicator.id == 0) {
+      final newId = _indicatorBox.isEmpty
+          ? 1
+          : _indicatorBox.keys.cast<int>().reduce((a, b) => a > b ? a : b) + 1;
+      final newIndicator = HealthIndicator(
+        id: newId,
+        reportId: indicator.reportId,
+        type: indicator.type,
+        value: indicator.value,
+        secondValue: indicator.secondValue,
+        unit: indicator.unit,
+        isAbnormal: indicator.isAbnormal,
+      );
+      await _indicatorBox.put(newId, newIndicator);
+      return newId;
+    } else {
+      await _indicatorBox.put(indicator.id, indicator);
+      return indicator.id;
+    }
   }
 }

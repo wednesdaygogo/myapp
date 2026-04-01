@@ -8,6 +8,10 @@
 	<string>用于拍摄家人照片</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>用于选择家人照片</string>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>UISupportsDocumentBrowser</key>
+	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -72,7 +76,3 @@
 	</array>
 </dict>
 </plist>
-    <key>NSCameraUsageDescription</key>
-    <string>用于拍摄家人照片</string>
-    <key>NSPhotoLibraryUsageDescription</key>
-    <string>用于选择家人照片</string>
