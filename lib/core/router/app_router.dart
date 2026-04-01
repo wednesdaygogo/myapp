@@ -8,6 +8,7 @@ import '../../features/person/ui/pages/person_form_page.dart';
 import '../../features/health_report/ui/pages/report_list_page.dart';
 import '../../features/health_report/ui/pages/report_detail_page.dart';
 import '../../features/health_report/ui/pages/report_import_page.dart';
+import '../../features/family_tree/ui/pages/family_tree_page.dart';
 
 // Shell with bottom navigation
 class MainShell extends StatelessWidget {
@@ -20,6 +21,8 @@ class MainShell extends StatelessWidget {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith('/reports')) {
       currentIndex = 1;
+    } else if (location.startsWith('/family-tree')) {
+      currentIndex = 2;
     }
 
     return Scaffold(
@@ -31,6 +34,7 @@ class MainShell extends StatelessWidget {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.people), label: '家人'),
           BottomNavigationBarItem(icon: Icon(Icons.description), label: '报告'),
+          BottomNavigationBarItem(icon: Icon(Icons.account_tree), label: '图谱'),
         ],
         onTap: (index) {
           switch (index) {
@@ -39,6 +43,9 @@ class MainShell extends StatelessWidget {
               break;
             case 1:
               context.go('/reports');
+              break;
+            case 2:
+              context.go('/family-tree');
               break;
           }
         },
@@ -91,6 +98,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
               return ReportDetailPage(reportId: id);
             },
+          ),
+          GoRoute(
+            path: '/family-tree',
+            builder: (context, state) => const FamilyTreePage(),
           ),
         ],
       ),
