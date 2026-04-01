@@ -25,13 +25,16 @@ class PersonAdapter extends TypeAdapter<Person> {
       phone: fields[4] as String?,
       photoPath: fields[5] as String?,
       relationship: fields[6] as String?,
+      fatherId: fields[8] as int?,
+      motherId: fields[9] as int?,
+      spouseId: fields[10] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Person obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(11)
       ..writeByte(7)
       ..write(obj.id)
       ..writeByte(0)
@@ -47,7 +50,13 @@ class PersonAdapter extends TypeAdapter<Person> {
       ..writeByte(5)
       ..write(obj.photoPath)
       ..writeByte(6)
-      ..write(obj.relationship);
+      ..write(obj.relationship)
+      ..writeByte(8)
+      ..write(obj.fatherId)
+      ..writeByte(9)
+      ..write(obj.motherId)
+      ..writeByte(10)
+      ..write(obj.spouseId);
   }
 
   @override
