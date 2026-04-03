@@ -1,8 +1,13 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:pdfrx/pdfrx.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../data/models/health_indicator.dart';
+import '../../../../data/models/health_report.dart';
 import '../../../../domain/entities/indicator_entity.dart';
 import '../../../person/providers/person_provider.dart';
 import '../../providers/health_report_provider.dart';
@@ -47,6 +52,12 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
         title: const Text('报告详情'),
         centerTitle: true,
         actions: [
+          if (report.pdfPath != null || report.fileName != null)
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf),
+              onPressed: () => _showPdfPreview(context, report),
+              tooltip: '预览PDF',
+            ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () => _confirmDelete(context, report.id),
@@ -58,13 +69,9 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Report info card
             _buildInfoCard(
                 report: report, person: person, dateFormat: dateFormat),
-
             const SizedBox(height: AppTheme.spacingLg),
-
-            // Indicators section
             Text(
               '健康指标',
               style: const TextStyle(
@@ -74,12 +81,23 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
               ),
             ),
             const SizedBox(height: AppTheme.spacingMd),
-
             if (indicators.isEmpty)
               _buildEmptyIndicators()
             else
-              ...indicators.map((indicator) => _buildIndicatorCard(indicator)),
-
+              Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+                    child: OutlinedButton.icon(
+                      onPressed: () => _editIndicators(context, indicators),
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text('编辑指标'),
+                    ),
+                  ),
+                  ...indicators
+                      .map((indicator) => _buildIndicatorCard(indicator)),
+                ],
+              ),
             const SizedBox(height: AppTheme.spacingXl),
           ],
         ),
@@ -377,8 +395,481 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
           SnackBar(content: Text(success ? '报告已删除' : '删除失败')),
         );
         if (success) {
-          Navigator.pop(context);
+          context.go('/reports'); // Navigate to report list instead of pop
         }
+      }
+    }
+  }
+
+  void _showPdfPreview(BuildContext context, HealthReport report) {
+    // Web platform or no file path - show info dialog
+    if (kIsWeb || report.pdfPath == null) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('PDF报告'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('文件名: ${report.fileName ?? "未知"}'),
+              const SizedBox(height: AppTheme.spacingMd),
+              const Text(
+                'Web平台暂不支持PDF预览。\n\n'
+                '如需查看原始PDF文件，建议：\n'
+                '• 在移动设备上打开此报告\n'
+                '• 或重新从本地上传PDF文件',
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('关闭'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Mobile platform with file path - show PDF viewer
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppBar(
+              title: Text(report.fileName ?? 'PDF预览'),
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            Flexible(
+              child: PdfViewer.file(report.pdfPath!),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _editIndicators(BuildContext context, List<HealthIndicator> indicators) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => _IndicatorEditPage(
+          reportId: widget.reportId,
+          indicators: indicators,
+        ),
+      ),
+    );
+  }
+}
+
+/// Indicator editing page
+class _IndicatorEditPage extends ConsumerStatefulWidget {
+  final int reportId;
+  final List<HealthIndicator> indicators;
+
+  const _IndicatorEditPage({
+    required this.reportId,
+    required this.indicators,
+  });
+
+  @override
+  ConsumerState<_IndicatorEditPage> createState() => _IndicatorEditPageState();
+}
+
+class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
+  late List<Map<String, dynamic>> _editedIndicators;
+
+  @override
+  void initState() {
+    super.initState();
+    _editedIndicators = widget.indicators
+        .map((i) => {
+              'id': i.id,
+              'type': i.type,
+              'value': i.value,
+              'secondValue': i.secondValue,
+              'unit': i.unit,
+              'isAbnormal': i.isAbnormal,
+            })
+        .toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('编辑指标'),
+        actions: [
+          TextButton.icon(
+            onPressed: _addNewIndicator,
+            icon: const Icon(Icons.add),
+            label: const Text('添加'),
+          ),
+        ],
+      ),
+      body: _editedIndicators.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.analytics_outlined,
+                    size: 64,
+                    color: AppTheme.textTertiary,
+                  ),
+                  const SizedBox(height: AppTheme.spacingMd),
+                  Text(
+                    '暂无指标',
+                    style: TextStyle(color: AppTheme.textSecondary),
+                  ),
+                  const SizedBox(height: AppTheme.spacingMd),
+                  ElevatedButton.icon(
+                    onPressed: _addNewIndicator,
+                    icon: const Icon(Icons.add),
+                    label: const Text('添加指标'),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(AppTheme.spacingMd),
+              itemCount: _editedIndicators.length,
+              itemBuilder: (context, index) {
+                return _buildIndicatorEditCard(index);
+              },
+            ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.spacingMd),
+          child: ElevatedButton(
+            onPressed: _saveIndicators,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
+            ),
+            child: const Text('保存'),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIndicatorEditCard(int index) {
+    final indicator = _editedIndicators[index];
+    final type = indicator['type'] as String;
+    final isBP = type == 'bloodPressure';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingMd),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppTheme.borderColor),
+        boxShadow: AppTheme.shadowSm,
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacingMd,
+              vertical: AppTheme.spacingSm,
+            ),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(AppTheme.radiusMd),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '指标 ${index + 1}: ${_getTypeName(type)}',
+                  style: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  onPressed: () => _deleteIndicator(index),
+                  color: AppTheme.errorColor,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    initialValue: indicator['value'].toString(),
+                    decoration: InputDecoration(
+                      labelText: isBP ? '收缩压' : '数值',
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingMd,
+                        vertical: AppTheme.spacingSm,
+                      ),
+                    ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      final numValue = double.tryParse(value);
+                      if (numValue != null) {
+                        setState(() {
+                          _editedIndicators[index]['value'] = numValue;
+                          _editedIndicators[index]['isAbnormal'] =
+                              _checkIfAbnormal(type, numValue,
+                                  indicator['secondValue'] as double?);
+                        });
+                      }
+                    },
+                  ),
+                ),
+                if (isBP) ...[
+                  const SizedBox(width: AppTheme.spacingSm),
+                  const Text('/'),
+                  const SizedBox(width: AppTheme.spacingSm),
+                  Expanded(
+                    child: TextFormField(
+                      initialValue:
+                          (indicator['secondValue'] as double?)?.toString() ??
+                              '',
+                      decoration: const InputDecoration(
+                        labelText: '舒张压',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: AppTheme.spacingMd,
+                          vertical: AppTheme.spacingSm,
+                        ),
+                      ),
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        final numValue = double.tryParse(value);
+                        if (numValue != null) {
+                          setState(() {
+                            _editedIndicators[index]['secondValue'] = numValue;
+                            _editedIndicators[index]['isAbnormal'] =
+                                _checkIfAbnormal(type,
+                                    indicator['value'] as double, numValue);
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ],
+                const SizedBox(width: AppTheme.spacingSm),
+                SizedBox(
+                  width: 80,
+                  child: TextFormField(
+                    initialValue: indicator['unit'] as String,
+                    decoration: const InputDecoration(
+                      labelText: '单位',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: AppTheme.spacingSm,
+                        vertical: AppTheme.spacingSm,
+                      ),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _editedIndicators[index]['unit'] = value;
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getTypeName(String type) {
+    switch (type) {
+      case 'bloodGlucose':
+        return '血糖';
+      case 'bloodPressure':
+        return '血压';
+      case 'bloodLipidTC':
+        return '总胆固醇';
+      case 'bloodLipidTG':
+        return '甘油三酯';
+      case 'bloodLipidHDL':
+        return '高密度脂蛋白';
+      case 'bloodLipidLDL':
+        return '低密度脂蛋白';
+      default:
+        return type;
+    }
+  }
+
+  void _addNewIndicator() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('添加指标'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('血糖'),
+              onTap: () {
+                Navigator.pop(context);
+                setState(() {
+                  _editedIndicators.add({
+                    'id': 0,
+                    'type': 'bloodGlucose',
+                    'value': 5.0,
+                    'secondValue': null,
+                    'unit': 'mmol/L',
+                    'isAbnormal': false,
+                  });
+                });
+              },
+            ),
+            ListTile(
+              title: const Text('血压'),
+              onTap: () {
+                Navigator.pop(context);
+                setState(() {
+                  _editedIndicators.add({
+                    'id': 0,
+                    'type': 'bloodPressure',
+                    'value': 120.0,
+                    'secondValue': 80.0,
+                    'unit': 'mmHg',
+                    'isAbnormal': false,
+                  });
+                });
+              },
+            ),
+            ListTile(
+              title: const Text('总胆固醇'),
+              onTap: () {
+                Navigator.pop(context);
+                setState(() {
+                  _editedIndicators.add({
+                    'id': 0,
+                    'type': 'bloodLipidTC',
+                    'value': 4.5,
+                    'secondValue': null,
+                    'unit': 'mmol/L',
+                    'isAbnormal': false,
+                  });
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _deleteIndicator(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除指标'),
+        content: const Text('确定要删除这个指标吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _editedIndicators.removeAt(index);
+              });
+              Navigator.pop(context);
+            },
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _checkIfAbnormal(String type, double value, double? secondValue) {
+    switch (type) {
+      case 'bloodGlucose':
+        return value < 3.9 || value > 6.1;
+      case 'bloodPressure':
+        return value > 140 || (secondValue != null && secondValue > 90);
+      case 'bloodLipidTC':
+        return value > 5.2;
+      case 'bloodLipidTG':
+        return value > 1.7;
+      case 'bloodLipidHDL':
+        return value < 1.0;
+      case 'bloodLipidLDL':
+        return value > 3.4;
+      default:
+        return false;
+    }
+  }
+
+  Future<void> _saveIndicators() async {
+    try {
+      final indicatorBox = Hive.box<HealthIndicator>(healthIndicatorsBoxName);
+
+      // Delete existing indicators
+      final existingIds = widget.indicators.map((i) => i.id).toList();
+      for (final id in existingIds) {
+        await indicatorBox.delete(id);
+      }
+
+      // Save new indicators
+      int maxId = indicatorBox.isEmpty
+          ? 0
+          : indicatorBox.keys.cast<int>().reduce((a, b) => a > b ? a : b);
+
+      for (final data in _editedIndicators) {
+        maxId++;
+        final indicator = HealthIndicator(
+          id: maxId,
+          reportId: widget.reportId,
+          type: data['type'] as String,
+          value: data['value'] as double,
+          secondValue: data['secondValue'] as double?,
+          unit: data['unit'] as String,
+          isAbnormal: data['isAbnormal'] as bool,
+        );
+        await indicatorBox.put(maxId, indicator);
+      }
+
+      // Refresh providers
+      ref.invalidate(indicatorsByReportProvider(widget.reportId));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('指标已保存')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败: $e')),
+        );
       }
     }
   }

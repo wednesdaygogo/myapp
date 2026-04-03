@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:pdfrx/pdfrx.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/services/pdf_extraction_service.dart';
 import '../../../../core/services/indicator_parser_service.dart';
@@ -33,6 +36,7 @@ class ReportImportPage extends ConsumerStatefulWidget {
 class _ReportImportPageState extends ConsumerState<ReportImportPage> {
   ImportPageStatus _status = ImportPageStatus.idle;
   String? _selectedFilePath;
+  Uint8List? _selectedFileBytes; // For web platform
   String? _fileName;
   String _extractedText = '';
   String? _errorMessage;
@@ -41,9 +45,8 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
   DateTime _reportDate = DateTime.now();
   List<ParsedIndicator> _parsedIndicators = [];
 
-  // PDF files in Documents directory
+// PDF files in Documents directory
   List<File> _localPdfFiles = [];
-  bool _showLocalFiles = false;
 
   final _pdfService = PdfExtractionService();
   final _parserService = IndicatorParserService();
@@ -57,6 +60,9 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
   }
 
   Future<void> _loadLocalPdfFiles() async {
+    // Skip on web platform (path_provider not available)
+    if (kIsWeb) return;
+
     try {
       final appDir = await getApplicationDocumentsDirectory();
       final pdfDir = Directory(appDir.path);
@@ -76,8 +82,9 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
       _fileName = name;
       _status = ImportPageStatus.fileSelected;
       _errorMessage = null;
+      _extractedText = '';
+      _parsedIndicators = [];
     });
-    _extractText();
   }
 
   Future<void> _pickPdfFile() async {
@@ -86,18 +93,55 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
         type: FileType.custom,
         allowedExtensions: ['pdf'],
         allowMultiple: false,
+        withData: true, // Required for web platform to get bytes
       );
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
-        if (file.path != null) {
+
+        // Check file size (20MB limit)
+        if (file.size > 20 * 1024 * 1024) {
           setState(() {
-            _selectedFilePath = file.path!;
-            _fileName = file.name;
-            _status = ImportPageStatus.fileSelected;
-            _errorMessage = null;
+            _errorMessage = 'PDF文件过大，最大支持20MB';
+            _status = ImportPageStatus.error;
           });
-          await _extractText();
+          return;
+        }
+
+        if (kIsWeb) {
+          // Web platform: use bytes directly
+          if (file.bytes != null) {
+            debugPrint(
+                'Web平台选择文件: ${file.name}, bytes length: ${file.bytes!.length}');
+            setState(() {
+              _selectedFileBytes = file.bytes;
+              _fileName = file.name;
+              _status = ImportPageStatus.fileSelected;
+              _errorMessage = null;
+              _extractedText = '';
+              _parsedIndicators = [];
+            });
+            debugPrint('状态已设置为: $_status');
+          } else {
+            setState(() {
+              _errorMessage = '无法读取文件内容';
+              _status = ImportPageStatus.error;
+            });
+          }
+        } else {
+          // Mobile platform: use path
+          if (file.path != null) {
+            debugPrint('移动平台选择文件: ${file.path}');
+            setState(() {
+              _selectedFilePath = file.path!;
+              _fileName = file.name;
+              _status = ImportPageStatus.fileSelected;
+              _errorMessage = null;
+              _extractedText = '';
+              _parsedIndicators = [];
+            });
+            debugPrint('状态已设置为: $_status');
+          }
         }
       }
     } catch (e) {
@@ -111,16 +155,35 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
   Future<void> _extractText() async {
     setState(() {
       _status = ImportPageStatus.extracting;
+      _errorMessage = null;
     });
 
     try {
-      final result = await _pdfService.extractTextFromPath(_selectedFilePath!);
+      PdfExtractionResult result;
+
+      if (kIsWeb && _selectedFileBytes != null) {
+        // Web platform: extract from bytes
+        result = await _pdfService.extractText(_selectedFileBytes!);
+      } else if (_selectedFilePath != null) {
+        // Mobile platform: extract from path
+        result = await _pdfService.extractTextFromPath(_selectedFilePath!);
+      } else {
+        setState(() {
+          _errorMessage = '未选择文件';
+          _status = ImportPageStatus.error;
+        });
+        return;
+      }
 
       setState(() {
         _extractedText = result.text;
         if (result.success) {
           _parsedIndicators = _parserService.parseAll(result.text);
           _status = ImportPageStatus.extracted;
+          if (result.errorMessage != null) {
+            // Show warning but continue
+            _errorMessage = result.errorMessage;
+          }
         } else {
           _errorMessage = result.errorMessage ?? '文本提取失败';
           _status = ImportPageStatus.error;
@@ -159,13 +222,18 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
         );
       }).toList();
 
+      // On web, pdfPath will be null (file not persisted to filesystem)
+      final pdfPath = kIsWeb ? null : _selectedFilePath;
+      final fileName = _fileName; // Save original filename
+
       final reportId =
           await ref.read(healthReportsProvider.notifier).createReport(
                 personId: _selectedPersonId!,
                 reportDate: _reportDate,
-                pdfPath: _selectedFilePath,
+                pdfPath: pdfPath,
                 source: 'pdf_import',
                 indicators: indicators,
+                fileName: fileName,
               );
 
       if (reportId != null) {
@@ -173,11 +241,13 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
           _status = ImportPageStatus.success;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('体检报告已保存')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('体检报告已保存')),
+          );
 
-        context.go('/reports');
+          context.go('/reports');
+        }
       } else {
         setState(() {
           _errorMessage = '保存报告失败';
@@ -225,6 +295,355 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
     }
   }
 
+  void _editIndicator(int index) {
+    final indicator = _parsedIndicators[index];
+    final nameController = TextEditingController(
+      text: indicator.customName.isNotEmpty
+          ? indicator.customName
+          : _getIndicatorDisplayName(indicator.type),
+    );
+    final valueController = TextEditingController(
+      text: indicator.value.toString(),
+    );
+    final secondValueController = TextEditingController(
+      text: indicator.secondValue?.toString() ?? '',
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('编辑指标'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: '指标名称',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: AppTheme.spacingMd),
+              TextField(
+                controller: valueController,
+                decoration: InputDecoration(
+                  labelText: indicator.secondValue != null ? '收缩压' : '数值',
+                  border: const OutlineInputBorder(),
+                  suffixText: indicator.unit,
+                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+              ),
+              if (indicator.secondValue != null) ...[
+                const SizedBox(height: AppTheme.spacingMd),
+                TextField(
+                  controller: secondValueController,
+                  decoration: InputDecoration(
+                    labelText: '舒张压',
+                    border: const OutlineInputBorder(),
+                    suffixText: indicator.unit,
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final newValue = double.tryParse(valueController.text);
+              final newSecondValue = indicator.secondValue != null
+                  ? double.tryParse(secondValueController.text)
+                  : null;
+
+              if (newValue != null) {
+                setState(() {
+                  _parsedIndicators[index] = ParsedIndicator(
+                    type: indicator.type,
+                    value: newValue,
+                    secondValue: newSecondValue,
+                    unit: indicator.unit,
+                    isAbnormal: _checkIfAbnormal(
+                        indicator.type, newValue, newSecondValue),
+                    customName: nameController.text,
+                  );
+                });
+                Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('请输入有效的数值')),
+                );
+              }
+            },
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _checkIfAbnormal(IndicatorType type, double value, double? secondValue) {
+    switch (type) {
+      case IndicatorType.bloodGlucose:
+        return value < 3.9 || value > 6.1;
+      case IndicatorType.bloodPressure:
+        return value > 140 || (secondValue ?? 0) > 90;
+      case IndicatorType.bloodLipidTC:
+        return value > 5.2;
+      case IndicatorType.bloodLipidTG:
+        return value > 1.7;
+      case IndicatorType.bloodLipidHDL:
+        return value < 1.0;
+      case IndicatorType.bloodLipidLDL:
+        return value > 3.4;
+    }
+  }
+
+  void _deleteIndicator(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除指标'),
+        content: const Text('确定要删除这个指标吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _parsedIndicators.removeAt(index);
+              });
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.errorColor,
+            ),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPdfPreviewDialog() {
+    if (kIsWeb && _selectedFileBytes != null) {
+      // Web: Use PdfViewer from bytes
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.9,
+            height: MediaQuery.of(context).size.height * 0.9,
+            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _fileName ?? 'PDF预览',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                Expanded(
+                  child: PdfViewer(
+                    PdfDocumentRefData(
+                      _selectedFileBytes!,
+                      sourceName: _fileName ?? 'document.pdf',
+                    ),
+                    params: const PdfViewerParams(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } else if (!kIsWeb && _selectedFilePath != null) {
+      // Mobile: Use PdfViewer from file
+      showDialog(
+        context: context,
+        builder: (context) => Dialog(
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.9,
+            height: MediaQuery.of(context).size.height * 0.9,
+            padding: const EdgeInsets.all(AppTheme.spacingMd),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _fileName ?? 'PDF预览',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                Expanded(
+                  child: PdfViewer(
+                    PdfDocumentRefFile(_selectedFilePath!),
+                    params: const PdfViewerParams(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  void _addManualIndicator() {
+    final nameController = TextEditingController();
+    final valueController = TextEditingController();
+    final unitController = TextEditingController(text: 'mmol/L');
+    IndicatorType selectedType = IndicatorType.bloodGlucose;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('手动添加指标'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<IndicatorType>(
+                  initialValue: selectedType,
+                  decoration: const InputDecoration(
+                    labelText: '指标类型',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: IndicatorType.bloodGlucose,
+                      child: Text('血糖'),
+                    ),
+                    DropdownMenuItem(
+                      value: IndicatorType.bloodPressure,
+                      child: Text('血压'),
+                    ),
+                    DropdownMenuItem(
+                      value: IndicatorType.bloodLipidTC,
+                      child: Text('总胆固醇(TC)'),
+                    ),
+                    DropdownMenuItem(
+                      value: IndicatorType.bloodLipidTG,
+                      child: Text('甘油三酯(TG)'),
+                    ),
+                    DropdownMenuItem(
+                      value: IndicatorType.bloodLipidHDL,
+                      child: Text('高密度脂蛋白(HDL)'),
+                    ),
+                    DropdownMenuItem(
+                      value: IndicatorType.bloodLipidLDL,
+                      child: Text('低密度脂蛋白(LDL)'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setDialogState(() {
+                      selectedType = value!;
+                      unitController.text =
+                          selectedType == IndicatorType.bloodPressure
+                              ? 'mmHg'
+                              : 'mmol/L';
+                    });
+                  },
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: '自定义名称（可选）',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                TextField(
+                  controller: valueController,
+                  decoration: InputDecoration(
+                    labelText: selectedType == IndicatorType.bloodPressure
+                        ? '收缩压'
+                        : '数值',
+                    border: const OutlineInputBorder(),
+                    suffixText: unitController.text,
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                TextField(
+                  controller: unitController,
+                  decoration: const InputDecoration(
+                    labelText: '单位',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final value = double.tryParse(valueController.text);
+                if (value != null) {
+                  final newIndicator = ParsedIndicator(
+                    type: selectedType,
+                    value: value,
+                    unit: unitController.text,
+                    isAbnormal: _checkIfAbnormal(selectedType, value, null),
+                    customName: nameController.text.isNotEmpty
+                        ? nameController.text
+                        : _getIndicatorDisplayName(selectedType),
+                  );
+                  setState(() {
+                    _parsedIndicators.add(newIndicator);
+                  });
+                  Navigator.pop(context);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('请输入有效的数值')),
+                  );
+                }
+              },
+              child: const Text('添加'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final persons = ref.watch(personsProvider);
@@ -241,7 +660,7 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
           children: [
             _buildSectionCard(
               title: '1. 选择PDF文件',
-              child: _selectedFilePath == null
+              child: (_selectedFilePath == null && _selectedFileBytes == null)
                   ? Column(
                       children: [
                         // Show local PDF files if available
@@ -300,50 +719,123 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                         ),
                       ],
                     )
-                  : Container(
-                      padding: const EdgeInsets.all(AppTheme.spacingMd),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceColor,
-                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                        border: Border.all(color: AppTheme.borderColor),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.picture_as_pdf,
-                              color: AppTheme.primaryColor),
-                          const SizedBox(width: AppTheme.spacingSm),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _fileName ?? 'PDF文件',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600),
+                  : Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(AppTheme.spacingMd),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surfaceColor,
+                            borderRadius:
+                                BorderRadius.circular(AppTheme.radiusMd),
+                            border: Border.all(color: AppTheme.borderColor),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.picture_as_pdf,
+                                  color: AppTheme.primaryColor),
+                              const SizedBox(width: AppTheme.spacingSm),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _fileName ?? 'PDF文件',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                    // Debug: 显示当前状态
+                                    Text(
+                                      '状态: $_status',
+                                      style: const TextStyle(
+                                          fontSize: 10, color: Colors.grey),
+                                    ),
+                                    if (_status == ImportPageStatus.extracting)
+                                      Row(
+                                        children: [
+                                          const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                                strokeWidth: 2),
+                                          ),
+                                          const SizedBox(
+                                              width: AppTheme.spacingSm),
+                                          Text(
+                                            '正在识别中...',
+                                            style: TextStyle(
+                                                color: AppTheme.textSecondary,
+                                                fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
+                                    if (_status == ImportPageStatus.extracted)
+                                      Text(
+                                        '已提取 ${_parsedIndicators.length} 个指标',
+                                        style: const TextStyle(
+                                            color: AppTheme.successColor),
+                                      ),
+                                  ],
                                 ),
-                                if (_status == ImportPageStatus.extracting)
-                                  const Text(
-                                    '正在提取文本...',
-                                    style: TextStyle(
-                                        color: AppTheme.textSecondary),
-                                  ),
-                              ],
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed:
+                                    _status == ImportPageStatus.extracting
+                                        ? null
+                                        : () {
+                                            setState(() {
+                                              _selectedFilePath = null;
+                                              _selectedFileBytes = null;
+                                              _fileName = null;
+                                              _extractedText = '';
+                                              _parsedIndicators = [];
+                                              _status = ImportPageStatus.idle;
+                                            });
+                                          },
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_status == ImportPageStatus.fileSelected)
+                          Padding(
+                            padding:
+                                const EdgeInsets.only(top: AppTheme.spacingMd),
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                debugPrint('开始识别按钮被点击，当前状态: $_status');
+                                _extractText();
+                              },
+                              icon: const Icon(Icons.search),
+                              label: const Text('开始识别'),
+                              style: ElevatedButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 48),
+                                backgroundColor: AppTheme.primaryColor,
+                              ),
                             ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () {
-                              setState(() {
-                                _selectedFilePath = null;
-                                _fileName = null;
-                                _extractedText = '';
-                                _parsedIndicators = [];
-                                _status = ImportPageStatus.idle;
-                              });
-                            },
+                        if (_status == ImportPageStatus.extracting)
+                          Padding(
+                            padding:
+                                const EdgeInsets.only(top: AppTheme.spacingMd),
+                            child: Container(
+                              padding: const EdgeInsets.all(AppTheme.spacingMd),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryColor
+                                    .withValues(alpha: 0.1),
+                                borderRadius:
+                                    BorderRadius.circular(AppTheme.radiusMd),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircularProgressIndicator(),
+                                  SizedBox(width: AppTheme.spacingMd),
+                                  Text('正在解析PDF，请稍候...'),
+                                ],
+                              ),
+                            ),
                           ),
-                        ],
-                      ),
+                      ],
                     ),
             ),
             const SizedBox(height: AppTheme.spacingMd),
@@ -355,7 +847,7 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                       style: TextStyle(color: AppTheme.textSecondary),
                     )
                   : DropdownButtonFormField<int>(
-                      value: _selectedPersonId,
+                      initialValue: _selectedPersonId,
                       decoration: const InputDecoration(
                         labelText: '选择家人',
                         border: OutlineInputBorder(),
@@ -434,35 +926,67 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                 _status == ImportPageStatus.extracted)
               _buildSectionCard(
                 title: '4. 提取的健康指标',
-                child: _parsedIndicators.isEmpty
-                    ? Container(
-                        padding: const EdgeInsets.all(AppTheme.spacingLg),
-                        child: Column(
+                child: Column(
+                  children: [
+                    // PDF Preview and Add Manual buttons
+                    if ((_selectedFileBytes != null ||
+                        _selectedFilePath != null))
+                      Padding(
+                        padding:
+                            const EdgeInsets.only(bottom: AppTheme.spacingMd),
+                        child: Row(
                           children: [
-                            Icon(Icons.info_outline,
-                                size: 48, color: AppTheme.textSecondary),
-                            const SizedBox(height: AppTheme.spacingSm),
-                            Text(
-                              '未从PDF中提取到健康指标',
-                              style: TextStyle(color: AppTheme.textSecondary),
-                            ),
-                            const SizedBox(height: AppTheme.spacingSm),
-                            Text(
-                              '请确保PDF包含可识别的文本格式的血压、血糖或血脂数据',
-                              style: TextStyle(
-                                color: AppTheme.textTertiary,
-                                fontSize: 12,
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _showPdfPreviewDialog,
+                                icon: const Icon(Icons.picture_as_pdf),
+                                label: const Text('预览PDF'),
                               ),
-                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(width: AppTheme.spacingSm),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: _addManualIndicator,
+                                icon: const Icon(Icons.add),
+                                label: const Text('手动添加'),
+                              ),
                             ),
                           ],
                         ),
-                      )
-                    : Column(
-                        children: _parsedIndicators.map((indicator) {
-                          return _buildIndicatorCard(indicator);
-                        }).toList(),
                       ),
+                    // Indicator list or empty state
+                    _parsedIndicators.isEmpty
+                        ? Container(
+                            padding: const EdgeInsets.all(AppTheme.spacingLg),
+                            child: Column(
+                              children: [
+                                Icon(Icons.info_outline,
+                                    size: 48, color: AppTheme.textSecondary),
+                                const SizedBox(height: AppTheme.spacingSm),
+                                Text(
+                                  '未从PDF中提取到健康指标',
+                                  style:
+                                      TextStyle(color: AppTheme.textSecondary),
+                                ),
+                                const SizedBox(height: AppTheme.spacingSm),
+                                Text(
+                                  '请确保PDF包含可识别的文本格式的血压、血糖或血脂数据',
+                                  style: TextStyle(
+                                    color: AppTheme.textTertiary,
+                                    fontSize: 12,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          )
+                        : Column(
+                            children: _parsedIndicators.map((indicator) {
+                              return _buildIndicatorCard(indicator);
+                            }).toList(),
+                          ),
+                  ],
+                ),
               ),
             const SizedBox(height: AppTheme.spacingMd),
             if (_errorMessage != null)
@@ -539,6 +1063,8 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
       displayValue = '${indicator.value} ${indicator.unit}';
     }
 
+    final index = _parsedIndicators.indexOf(indicator);
+
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),
       padding: const EdgeInsets.all(AppTheme.spacingMd),
@@ -567,7 +1093,9 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _getIndicatorDisplayName(indicator.type),
+                  indicator.customName.isNotEmpty
+                      ? indicator.customName
+                      : _getIndicatorDisplayName(indicator.type),
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textPrimary,
@@ -585,20 +1113,38 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              isAbnormal ? '异常' : '正常',
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w500,
-                fontSize: 12,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Edit button
+              IconButton(
+                icon: const Icon(Icons.edit, size: 20),
+                onPressed: () => _editIndicator(index),
+                tooltip: '编辑',
               ),
-            ),
+              // Delete button
+              IconButton(
+                icon: const Icon(Icons.delete_outline,
+                    size: 20, color: AppTheme.errorColor),
+                onPressed: () => _deleteIndicator(index),
+                tooltip: '删除',
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isAbnormal ? '异常' : '正常',
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

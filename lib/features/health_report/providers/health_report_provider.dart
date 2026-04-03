@@ -33,6 +33,7 @@ class HealthReportsNotifier extends StateNotifier<List<HealthReport>> {
     required int personId,
     required DateTime reportDate,
     String? pdfPath,
+    String? fileName,
     String source = 'pdf_import',
     List<HealthIndicator>? indicators,
   }) async {
@@ -52,6 +53,7 @@ class HealthReportsNotifier extends StateNotifier<List<HealthReport>> {
         reportDate: reportDate,
         source: source,
         pdfPath: pdfPath,
+        fileName: fileName,
       );
 
       // Save report to Hive
