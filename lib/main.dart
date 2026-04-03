@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:pdfrx/pdfrx.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'data/models/person.dart';
@@ -10,6 +11,9 @@ import 'data/models/health_indicator.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize pdfrx for PDF processing
+  pdfrxFlutterInitialize();
 
   await Hive.initFlutter();
   Hive.registerAdapter(PersonAdapter());
