@@ -22,13 +22,14 @@ class HealthReportAdapter extends TypeAdapter<HealthReport> {
       reportDate: fields[1] as DateTime,
       source: fields[2] as String,
       pdfPath: fields[3] as String?,
+      fileName: fields[5] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, HealthReport obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(4)
       ..write(obj.id)
       ..writeByte(0)
@@ -38,7 +39,9 @@ class HealthReportAdapter extends TypeAdapter<HealthReport> {
       ..writeByte(2)
       ..write(obj.source)
       ..writeByte(3)
-      ..write(obj.pdfPath);
+      ..write(obj.pdfPath)
+      ..writeByte(5)
+      ..write(obj.fileName);
   }
 
   @override

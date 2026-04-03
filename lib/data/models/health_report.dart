@@ -19,11 +19,15 @@ class HealthReport extends HiveObject {
   @HiveField(3)
   String? pdfPath;
 
+  @HiveField(5)
+  String? fileName; // Store original filename for display
+
   HealthReport({
     this.id = 0,
     required this.personId,
     required this.reportDate,
     this.source = 'manual',
     this.pdfPath,
+    this.fileName,
   });
 }
