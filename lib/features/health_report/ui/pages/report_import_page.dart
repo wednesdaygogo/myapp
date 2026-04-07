@@ -222,19 +222,17 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
         );
       }).toList();
 
-      // On web, pdfPath will be null (file not persisted to filesystem)
-      final pdfPath = kIsWeb ? null : _selectedFilePath;
-      final fileName = _fileName; // Save original filename
-
-      final reportId =
-          await ref.read(healthReportsProvider.notifier).createReport(
-                personId: _selectedPersonId!,
-                reportDate: _reportDate,
-                pdfPath: pdfPath,
-                source: 'pdf_import',
-                indicators: indicators,
-                fileName: fileName,
-              );
+      final reportId = await ref
+          .read(healthReportsProvider.notifier)
+          .createReport(
+            personId: _selectedPersonId!,
+            reportDate: _reportDate,
+            pdfPath: _selectedFilePath, // Provider will copy to app directory
+            fileName: _fileName,
+            pdfBytes: _selectedFileBytes, // For web platform
+            source: 'pdf_import',
+            indicators: indicators,
+          );
 
       if (reportId != null) {
         setState(() {

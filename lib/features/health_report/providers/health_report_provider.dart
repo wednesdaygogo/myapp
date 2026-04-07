@@ -1,5 +1,8 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../data/models/health_report.dart';
 import '../../../data/models/health_indicator.dart';
 import '../../../data/models/person.dart';
@@ -28,12 +31,44 @@ class HealthReportsNotifier extends StateNotifier<List<HealthReport>> {
     }
   }
 
+  /// Copy PDF file to app's private documents directory
+  Future<String?> _copyPdfToAppDirectory(
+      String sourcePath, String fileName) async {
+    if (kIsWeb) return null; // Not applicable for web
+
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final pdfDir = Directory('${appDir.path}/health_reports');
+
+      // Create directory if not exists
+      if (!await pdfDir.exists()) {
+        await pdfDir.create(recursive: true);
+      }
+
+      // Generate unique filename with timestamp
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final newFileName = '${timestamp}_$fileName';
+      final newPath = '${pdfDir.path}/$newFileName';
+
+      // Copy file
+      final sourceFile = File(sourcePath);
+      if (await sourceFile.exists()) {
+        await sourceFile.copy(newPath);
+        return newPath;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// Create a new health report with indicators
   Future<int?> createReport({
     required int personId,
     required DateTime reportDate,
     String? pdfPath,
     String? fileName,
+    List<int>? pdfBytes, // For web platform
     String source = 'pdf_import',
     List<HealthIndicator>? indicators,
   }) async {
@@ -46,14 +81,27 @@ class HealthReportsNotifier extends StateNotifier<List<HealthReport>> {
           ? 1
           : box.keys.cast<int>().reduce((a, b) => a > b ? a : b) + 1;
 
+      // Handle PDF storage
+      String? finalPdfPath;
+      List<int>? finalPdfBytes;
+
+      if (kIsWeb && pdfBytes != null) {
+        // Web platform: store bytes directly in Hive
+        finalPdfBytes = pdfBytes;
+      } else if (!kIsWeb && pdfPath != null && fileName != null) {
+        // Mobile/macOS: copy file to app directory
+        finalPdfPath = await _copyPdfToAppDirectory(pdfPath, fileName);
+      }
+
       // Create report
       final report = HealthReport(
         id: newId,
         personId: personId,
         reportDate: reportDate,
         source: source,
-        pdfPath: pdfPath,
+        pdfPath: finalPdfPath,
         fileName: fileName,
+        pdfBytes: finalPdfBytes,
       );
 
       // Save report to Hive
@@ -89,11 +137,20 @@ class HealthReportsNotifier extends StateNotifier<List<HealthReport>> {
     }
   }
 
-  /// Delete a health report and its indicators
+  /// Delete a health report and its indicators (and PDF file if exists)
   Future<bool> deleteReport(int reportId) async {
     try {
       final box = Hive.box<HealthReport>(healthReportsBoxName);
       final indicatorBox = Hive.box<HealthIndicator>(healthIndicatorsBoxName);
+
+      // Get report to delete its PDF file
+      final report = box.get(reportId);
+      if (report != null && report.pdfPath != null && !kIsWeb) {
+        final pdfFile = File(report.pdfPath!);
+        if (await pdfFile.exists()) {
+          await pdfFile.delete();
+        }
+      }
 
       // Delete associated indicators
       final indicatorsToDelete = indicatorBox.values

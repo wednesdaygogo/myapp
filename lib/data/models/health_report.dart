@@ -22,6 +22,9 @@ class HealthReport extends HiveObject {
   @HiveField(5)
   String? fileName; // Store original filename for display
 
+  @HiveField(6)
+  List<int>? pdfBytes; // Store PDF bytes for Web platform
+
   HealthReport({
     this.id = 0,
     required this.personId,
@@ -29,5 +32,6 @@ class HealthReport extends HiveObject {
     this.source = 'manual',
     this.pdfPath,
     this.fileName,
+    this.pdfBytes,
   });
 }

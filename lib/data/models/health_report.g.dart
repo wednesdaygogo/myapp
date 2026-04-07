@@ -23,13 +23,14 @@ class HealthReportAdapter extends TypeAdapter<HealthReport> {
       source: fields[2] as String,
       pdfPath: fields[3] as String?,
       fileName: fields[5] as String?,
+      pdfBytes: (fields[6] as List?)?.cast<int>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, HealthReport obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(4)
       ..write(obj.id)
       ..writeByte(0)
@@ -41,7 +42,9 @@ class HealthReportAdapter extends TypeAdapter<HealthReport> {
       ..writeByte(3)
       ..write(obj.pdfPath)
       ..writeByte(5)
-      ..write(obj.fileName);
+      ..write(obj.fileName)
+      ..writeByte(6)
+      ..write(obj.pdfBytes);
   }
 
   @override
