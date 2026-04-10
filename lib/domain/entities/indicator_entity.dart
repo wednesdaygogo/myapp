@@ -5,6 +5,7 @@ enum IndicatorType {
   bloodLipidTG,
   bloodLipidHDL,
   bloodLipidLDL,
+  custom,
 }
 
 class IndicatorEntity {
@@ -42,6 +43,8 @@ class IndicatorEntity {
         return '高密度脂蛋白';
       case IndicatorType.bloodLipidLDL:
         return '低密度脂蛋白';
+      case IndicatorType.custom:
+        return '自定义';
     }
   }
 }

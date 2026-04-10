@@ -274,6 +274,8 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
         return 'bloodLipidHDL';
       case IndicatorType.bloodLipidLDL:
         return 'bloodLipidLDL';
+      case IndicatorType.custom:
+        return 'custom';
     }
   }
 
@@ -306,83 +308,126 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
     final secondValueController = TextEditingController(
       text: indicator.secondValue?.toString() ?? '',
     );
+    final unitController = TextEditingController(
+      text: indicator.unit,
+    );
+    bool isAbnormal = indicator.isAbnormal;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('编辑指标'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: '指标名称',
-                  border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('编辑指标'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: '指标名称',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppTheme.spacingMd),
-              TextField(
-                controller: valueController,
-                decoration: InputDecoration(
-                  labelText: indicator.secondValue != null ? '收缩压' : '数值',
-                  border: const OutlineInputBorder(),
-                  suffixText: indicator.unit,
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-              ),
-              if (indicator.secondValue != null) ...[
                 const SizedBox(height: AppTheme.spacingMd),
                 TextField(
-                  controller: secondValueController,
+                  controller: valueController,
                   decoration: InputDecoration(
-                    labelText: '舒张压',
+                    labelText: '数值',
                     border: const OutlineInputBorder(),
-                    suffixText: indicator.unit,
+                    suffixText: unitController.text,
                   ),
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                 ),
+                const SizedBox(height: AppTheme.spacingMd),
+                TextField(
+                  controller: secondValueController,
+                  decoration: const InputDecoration(
+                    labelText: '第二数值（可选）',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                TextField(
+                  controller: unitController,
+                  decoration: const InputDecoration(
+                    labelText: '单位',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                Row(
+                  children: [
+                    const Text('是否异常：'),
+                    const Spacer(),
+                    Switch(
+                      value: isAbnormal,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          isAbnormal = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
               ],
-            ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final newValue = double.tryParse(valueController.text);
-              final newSecondValue = indicator.secondValue != null
-                  ? double.tryParse(secondValueController.text)
-                  : null;
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                final newValue = double.tryParse(valueController.text);
+                final newSecondValue =
+                    double.tryParse(secondValueController.text);
+                final newUnit = unitController.text.trim();
 
-              if (newValue != null) {
+                if (name.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('请输入指标名称')),
+                  );
+                  return;
+                }
+
+                if (newValue == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('请输入有效的数值')),
+                  );
+                  return;
+                }
+
+                if (newUnit.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('请输入单位')),
+                  );
+                  return;
+                }
+
                 setState(() {
                   _parsedIndicators[index] = ParsedIndicator(
-                    type: indicator.type,
+                    type: indicator.type == IndicatorType.custom
+                        ? IndicatorType.custom
+                        : indicator.type,
                     value: newValue,
                     secondValue: newSecondValue,
-                    unit: indicator.unit,
-                    isAbnormal: _checkIfAbnormal(
-                        indicator.type, newValue, newSecondValue),
-                    customName: nameController.text,
+                    unit: newUnit,
+                    isAbnormal: isAbnormal,
+                    customName: name,
                   );
                 });
                 Navigator.pop(context);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('请输入有效的数值')),
-                );
-              }
-            },
-            child: const Text('保存'),
-          ),
-        ],
+              },
+              child: const Text('保存'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -401,6 +446,8 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
         return value < 1.0;
       case IndicatorType.bloodLipidLDL:
         return value > 3.4;
+      case IndicatorType.custom:
+        return false; // Custom indicators don't have automatic abnormal detection
     }
   }
 
@@ -520,8 +567,9 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
   void _addManualIndicator() {
     final nameController = TextEditingController();
     final valueController = TextEditingController();
-    final unitController = TextEditingController(text: 'mmol/L');
-    IndicatorType selectedType = IndicatorType.bloodGlucose;
+    final secondValueController = TextEditingController();
+    final unitController = TextEditingController();
+    bool isAbnormal = false;
 
     showDialog(
       context: context,
@@ -532,65 +580,31 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                DropdownButtonFormField<IndicatorType>(
-                  initialValue: selectedType,
-                  decoration: const InputDecoration(
-                    labelText: '指标类型',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: const [
-                    DropdownMenuItem(
-                      value: IndicatorType.bloodGlucose,
-                      child: Text('血糖'),
-                    ),
-                    DropdownMenuItem(
-                      value: IndicatorType.bloodPressure,
-                      child: Text('血压'),
-                    ),
-                    DropdownMenuItem(
-                      value: IndicatorType.bloodLipidTC,
-                      child: Text('总胆固醇(TC)'),
-                    ),
-                    DropdownMenuItem(
-                      value: IndicatorType.bloodLipidTG,
-                      child: Text('甘油三酯(TG)'),
-                    ),
-                    DropdownMenuItem(
-                      value: IndicatorType.bloodLipidHDL,
-                      child: Text('高密度脂蛋白(HDL)'),
-                    ),
-                    DropdownMenuItem(
-                      value: IndicatorType.bloodLipidLDL,
-                      child: Text('低密度脂蛋白(LDL)'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    setDialogState(() {
-                      selectedType = value!;
-                      unitController.text =
-                          selectedType == IndicatorType.bloodPressure
-                              ? 'mmHg'
-                              : 'mmol/L';
-                    });
-                  },
-                ),
-                const SizedBox(height: AppTheme.spacingMd),
                 TextField(
                   controller: nameController,
                   decoration: const InputDecoration(
-                    labelText: '自定义名称（可选）',
+                    labelText: '指标名称',
+                    hintText: '例如：血尿酸',
                     border: OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: AppTheme.spacingMd),
                 TextField(
                   controller: valueController,
-                  decoration: InputDecoration(
-                    labelText: selectedType == IndicatorType.bloodPressure
-                        ? '收缩压'
-                        : '数值',
-                    border: const OutlineInputBorder(),
-                    suffixText: unitController.text,
+                  decoration: const InputDecoration(
+                    labelText: '数值',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                TextField(
+                  controller: secondValueController,
+                  decoration: const InputDecoration(
+                    labelText: '第二数值（可选）',
+                    hintText: '例如：血压舒张压',
+                    border: OutlineInputBorder(),
                   ),
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
@@ -600,8 +614,24 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                   controller: unitController,
                   decoration: const InputDecoration(
                     labelText: '单位',
+                    hintText: '例如：mmol/L',
                     border: OutlineInputBorder(),
                   ),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                Row(
+                  children: [
+                    const Text('是否异常：'),
+                    const Spacer(),
+                    Switch(
+                      value: isAbnormal,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          isAbnormal = value;
+                        });
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -613,26 +643,44 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
             ),
             ElevatedButton(
               onPressed: () {
+                final name = nameController.text.trim();
                 final value = double.tryParse(valueController.text);
-                if (value != null) {
-                  final newIndicator = ParsedIndicator(
-                    type: selectedType,
-                    value: value,
-                    unit: unitController.text,
-                    isAbnormal: _checkIfAbnormal(selectedType, value, null),
-                    customName: nameController.text.isNotEmpty
-                        ? nameController.text
-                        : _getIndicatorDisplayName(selectedType),
+                final secondValue = double.tryParse(secondValueController.text);
+                final unit = unitController.text.trim();
+
+                if (name.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('请输入指标名称')),
                   );
-                  setState(() {
-                    _parsedIndicators.add(newIndicator);
-                  });
-                  Navigator.pop(context);
-                } else {
+                  return;
+                }
+
+                if (value == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('请输入有效的数值')),
                   );
+                  return;
                 }
+
+                if (unit.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('请输入单位')),
+                  );
+                  return;
+                }
+
+                final newIndicator = ParsedIndicator(
+                  type: IndicatorType.custom,
+                  value: value,
+                  secondValue: secondValue,
+                  unit: unit,
+                  isAbnormal: isAbnormal,
+                  customName: name,
+                );
+                setState(() {
+                  _parsedIndicators.add(newIndicator);
+                });
+                Navigator.pop(context);
               },
               child: const Text('添加'),
             ),
@@ -649,10 +697,14 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('导入体检报告'),
-        centerTitle: true,
+        titleTextStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w500,
+          color: AppTheme.textPrimary,
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.spacingMd),
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -684,18 +736,20 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                                     title: Text(fileName),
                                     subtitle: Text(
                                       '${(file.lengthSync() / 1024 / 1024).toStringAsFixed(1)} MB',
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                           color: AppTheme.textSecondary),
                                     ),
                                     trailing: const Icon(
                                         Icons.arrow_forward_ios,
-                                        size: 16),
+                                        size: 16,
+                                        color: AppTheme.textTertiary),
                                     tileColor: AppTheme.surfaceColor,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(
                                           AppTheme.radiusMd),
                                       side: BorderSide(
-                                          color: AppTheme.borderColor),
+                                          color: AppTheme.borderColor,
+                                          width: 0.5),
                                     ),
                                     onTap: () {
                                       _selectLocalFile(file.path, fileName);
@@ -707,11 +761,11 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                               const SizedBox(height: AppTheme.spacingSm),
                             ],
                           ),
-                        ElevatedButton.icon(
+                        OutlinedButton.icon(
                           onPressed: _pickPdfFile,
                           icon: const Icon(Icons.upload_file),
                           label: const Text('从文件系统选择'),
-                          style: ElevatedButton.styleFrom(
+                          style: OutlinedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 48),
                           ),
                         ),
@@ -725,7 +779,8 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                             color: AppTheme.surfaceColor,
                             borderRadius:
                                 BorderRadius.circular(AppTheme.radiusMd),
-                            border: Border.all(color: AppTheme.borderColor),
+                            border: Border.all(
+                                color: AppTheme.borderColor, width: 0.5),
                           ),
                           child: Row(
                             children: [
@@ -743,9 +798,10 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                                     ),
                                     // Debug: 显示当前状态
                                     Text(
-                                      '状态: $_status',
+                                      '状态：$_status',
                                       style: const TextStyle(
-                                          fontSize: 10, color: Colors.grey),
+                                          fontSize: 10,
+                                          color: AppTheme.textTertiary),
                                     ),
                                     if (_status == ImportPageStatus.extracting)
                                       Row(
@@ -770,7 +826,9 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                                       Text(
                                         '已提取 ${_parsedIndicators.length} 个指标',
                                         style: const TextStyle(
-                                            color: AppTheme.successColor),
+                                            color: AppTheme.successColor,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500),
                                       ),
                                   ],
                                 ),
@@ -819,16 +877,27 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                               padding: const EdgeInsets.all(AppTheme.spacingMd),
                               decoration: BoxDecoration(
                                 color: AppTheme.primaryColor
-                                    .withValues(alpha: 0.1),
+                                    .withValues(alpha: 0.05),
                                 borderRadius:
                                     BorderRadius.circular(AppTheme.radiusMd),
+                                border: Border.all(
+                                  color: AppTheme.primaryColor
+                                      .withValues(alpha: 0.2),
+                                  width: 0.5,
+                                ),
                               ),
                               child: const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  CircularProgressIndicator(),
+                                  SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
                                   SizedBox(width: AppTheme.spacingMd),
-                                  Text('正在解析PDF，请稍候...'),
+                                  Text('正在解析 PDF，请稍候...'),
                                 ],
                               ),
                             ),
@@ -938,12 +1007,12 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                               child: OutlinedButton.icon(
                                 onPressed: _showPdfPreviewDialog,
                                 icon: const Icon(Icons.picture_as_pdf),
-                                label: const Text('预览PDF'),
+                                label: const Text('预览 PDF'),
                               ),
                             ),
                             const SizedBox(width: AppTheme.spacingSm),
                             Expanded(
-                              child: ElevatedButton.icon(
+                              child: OutlinedButton.icon(
                                 onPressed: _addManualIndicator,
                                 icon: const Icon(Icons.add),
                                 label: const Text('手动添加'),
@@ -991,8 +1060,12 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
               Container(
                 padding: const EdgeInsets.all(AppTheme.spacingMd),
                 decoration: BoxDecoration(
-                  color: AppTheme.errorLight,
+                  color: AppTheme.errorColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                  border: Border.all(
+                    color: AppTheme.errorColor.withValues(alpha: 0.3),
+                    width: 0.5,
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -1001,7 +1074,7 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                     Expanded(
                       child: Text(
                         _errorMessage!,
-                        style: TextStyle(color: AppTheme.errorColor),
+                        style: const TextStyle(color: AppTheme.errorColor),
                       ),
                     ),
                   ],
@@ -1026,9 +1099,9 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingMd),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.borderColor),
+        border: Border.all(color: AppTheme.borderColor, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1036,9 +1109,9 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
           Text(
             title,
             style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: AppTheme.textSecondary,
             ),
           ),
           const SizedBox(height: AppTheme.spacingMd),
@@ -1051,7 +1124,6 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
   Widget _buildIndicatorCard(ParsedIndicator indicator) {
     final isAbnormal = indicator.isAbnormal;
     final color = isAbnormal ? AppTheme.errorColor : AppTheme.successColor;
-    final bgColor = isAbnormal ? AppTheme.errorLight : AppTheme.successLight;
 
     String displayValue;
     if (indicator.secondValue != null) {
@@ -1067,9 +1139,12 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
       margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),
       padding: const EdgeInsets.all(AppTheme.spacingMd),
       decoration: BoxDecoration(
-        color: bgColor.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+          width: 0.5,
+        ),
       ),
       child: Row(
         children: [
@@ -1083,6 +1158,7 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
             child: Icon(
               _getIndicatorIcon(indicator.type),
               color: color,
+              size: 20,
             ),
           ),
           const SizedBox(width: AppTheme.spacingMd),
@@ -1095,15 +1171,16 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                       ? indicator.customName
                       : _getIndicatorDisplayName(indicator.type),
                   style: const TextStyle(
-                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                     color: AppTheme.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   displayValue,
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: color,
                   ),
@@ -1114,24 +1191,31 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Edit button
               IconButton(
-                icon: const Icon(Icons.edit, size: 20),
+                icon: const Icon(Icons.edit, size: 18),
                 onPressed: () => _editIndicator(index),
                 tooltip: '编辑',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
-              // Delete button
+              const SizedBox(width: AppTheme.spacingXs),
               IconButton(
-                icon: const Icon(Icons.delete_outline,
-                    size: 20, color: AppTheme.errorColor),
+                icon: const Icon(Icons.delete_outline, size: 18),
                 onPressed: () => _deleteIndicator(index),
                 tooltip: '删除',
+                color: AppTheme.textSecondary,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
+              const SizedBox(width: AppTheme.spacingSm),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                 ),
                 child: Text(
                   isAbnormal ? '异常' : '正常',
@@ -1163,6 +1247,8 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
         return '高密度脂蛋白(HDL)';
       case IndicatorType.bloodLipidLDL:
         return '低密度脂蛋白(LDL)';
+      case IndicatorType.custom:
+        return '自定义';
     }
   }
 
@@ -1177,6 +1263,8 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
       case IndicatorType.bloodLipidHDL:
       case IndicatorType.bloodLipidLDL:
         return Icons.water_drop;
+      case IndicatorType.custom:
+        return Icons.edit_note;
     }
   }
 }

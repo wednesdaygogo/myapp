@@ -37,7 +37,14 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
 
     if (report == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('报告详情')),
+        appBar: AppBar(
+          title: const Text('报告详情'),
+          titleTextStyle: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.textPrimary,
+          ),
+        ),
         body: const Center(child: Text('未找到报告')),
       );
     }
@@ -50,13 +57,17 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('报告详情'),
-        centerTitle: true,
+        titleTextStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w500,
+          color: AppTheme.textPrimary,
+        ),
         actions: [
           if (report.pdfPath != null || report.fileName != null)
             IconButton(
               icon: const Icon(Icons.picture_as_pdf),
               onPressed: () => _showPdfPreview(context, report),
-              tooltip: '预览PDF',
+              tooltip: '预览 PDF',
             ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
@@ -65,18 +76,18 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppTheme.spacingMd),
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildInfoCard(
                 report: report, person: person, dateFormat: dateFormat),
             const SizedBox(height: AppTheme.spacingLg),
-            Text(
+            const Text(
               '健康指标',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
                 color: AppTheme.textPrimary,
               ),
             ),
@@ -92,6 +103,9 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
                       onPressed: () => _editIndicators(context, indicators),
                       icon: const Icon(Icons.edit, size: 18),
                       label: const Text('编辑指标'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 40),
+                      ),
                     ),
                   ),
                   ...indicators
@@ -113,10 +127,9 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
     return Container(
       padding: const EdgeInsets.all(AppTheme.spacingMd),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.borderColor),
-        boxShadow: AppTheme.shadowSm,
+        border: Border.all(color: AppTheme.borderColor, width: 0.5),
       ),
       child: Column(
         children: [
@@ -129,9 +142,10 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
                   color: AppTheme.primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.person,
                   color: AppTheme.primaryColor,
+                  size: 24,
                 ),
               ),
               const SizedBox(width: AppTheme.spacingMd),
@@ -142,13 +156,16 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
                     Text(
                       person?.name ?? '未知',
                       style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.textPrimary,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       person?.relationship ?? '',
-                      style: TextStyle(
+                      style: const TextStyle(
+                        fontSize: 14,
                         color: AppTheme.textSecondary,
                       ),
                     ),
@@ -157,7 +174,7 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
               ),
             ],
           ),
-          const Divider(height: AppTheme.spacingXl),
+          const Divider(height: 32, thickness: 0.5),
           Row(
             children: [
               Expanded(
@@ -171,7 +188,7 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
                 child: _buildInfoItem(
                   icon: Icons.source,
                   label: '来源',
-                  value: report.source == 'pdf_import' ? 'PDF导入' : '手动录入',
+                  value: report.source == 'pdf_import' ? 'PDF 导入' : '手动录入',
                 ),
               ),
             ],
@@ -188,22 +205,25 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
   }) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: AppTheme.textSecondary),
+        Icon(icon, size: 18, color: AppTheme.textTertiary),
         const SizedBox(width: AppTheme.spacingSm),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
                 color: AppTheme.textSecondary,
               ),
             ),
+            const SizedBox(height: 2),
             Text(
               value,
               style: const TextStyle(
+                fontSize: 14,
                 fontWeight: FontWeight.w500,
+                color: AppTheme.textPrimary,
               ),
             ),
           ],
@@ -218,6 +238,7 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.borderColor, width: 0.5),
       ),
       child: Center(
         child: Column(
@@ -228,9 +249,12 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
               color: AppTheme.textTertiary,
             ),
             const SizedBox(height: AppTheme.spacingMd),
-            Text(
+            const Text(
               '暂无健康指标',
-              style: TextStyle(color: AppTheme.textSecondary),
+              style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+              ),
             ),
           ],
         ),
@@ -242,7 +266,6 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
     final type = _getIndicatorType(indicator.type);
     final isAbnormal = indicator.isAbnormal;
     final color = isAbnormal ? AppTheme.errorColor : AppTheme.successColor;
-    final bgColor = isAbnormal ? AppTheme.errorLight : AppTheme.successLight;
 
     String displayValue;
     if (indicator.secondValue != null) {
@@ -256,9 +279,12 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
       margin: const EdgeInsets.only(bottom: AppTheme.spacingSm),
       padding: const EdgeInsets.all(AppTheme.spacingMd),
       decoration: BoxDecoration(
-        color: bgColor.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+          width: 0.5,
+        ),
       ),
       child: Row(
         children: [
@@ -272,6 +298,7 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
             child: Icon(
               _getIndicatorIcon(type),
               color: color,
+              size: 24,
             ),
           ),
           const SizedBox(width: AppTheme.spacingMd),
@@ -282,15 +309,16 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
                 Text(
                   _getIndicatorDisplayName(type),
                   style: const TextStyle(
-                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
                     color: AppTheme.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   displayValue,
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: color,
                   ),
@@ -299,14 +327,15 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             ),
             child: Text(
               isAbnormal ? '异常' : '正常',
               style: TextStyle(
+                fontSize: 12,
                 color: color,
                 fontWeight: FontWeight.w500,
               ),
@@ -350,6 +379,8 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
         return '高密度脂蛋白(HDL)';
       case IndicatorType.bloodLipidLDL:
         return '低密度脂蛋白(LDL)';
+      case IndicatorType.custom:
+        return '自定义';
     }
   }
 
@@ -364,6 +395,8 @@ class _ReportDetailPageState extends ConsumerState<ReportDetailPage> {
       case IndicatorType.bloodLipidHDL:
       case IndicatorType.bloodLipidLDL:
         return Icons.water_drop;
+      case IndicatorType.custom:
+        return Icons.edit_note;
     }
   }
 
@@ -510,6 +543,11 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('编辑指标'),
+        titleTextStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w500,
+          color: AppTheme.textPrimary,
+        ),
         actions: [
           TextButton.icon(
             onPressed: _addNewIndicator,
@@ -529,9 +567,12 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
                     color: AppTheme.textTertiary,
                   ),
                   const SizedBox(height: AppTheme.spacingMd),
-                  Text(
+                  const Text(
                     '暂无指标',
-                    style: TextStyle(color: AppTheme.textSecondary),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: AppTheme.spacingMd),
                   ElevatedButton.icon(
@@ -555,9 +596,7 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
           child: ElevatedButton(
             onPressed: _saveIndicators,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingMd),
+              minimumSize: const Size(double.infinity, 48),
             ),
             child: const Text('保存'),
           ),
@@ -574,10 +613,9 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingMd),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-        border: Border.all(color: AppTheme.borderColor),
-        boxShadow: AppTheme.shadowSm,
+        color: AppTheme.surfaceColor,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.borderColor, width: 0.5),
       ),
       child: Column(
         children: [
@@ -587,9 +625,9 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
               vertical: AppTheme.spacingSm,
             ),
             decoration: BoxDecoration(
-              color: AppTheme.surfaceColor,
+              color: AppTheme.surfaceVariant,
               borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(AppTheme.radiusMd),
+                top: Radius.circular(AppTheme.radiusLg),
               ),
             ),
             child: Row(
@@ -597,15 +635,16 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
               children: [
                 Text(
                   '指标 ${index + 1}: ${_getTypeName(type)}',
-                  style: TextStyle(
+                  style: const TextStyle(
+                    fontSize: 13,
                     color: AppTheme.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20),
+                  icon: const Icon(Icons.delete_outline, size: 18),
                   onPressed: () => _deleteIndicator(index),
-                  color: AppTheme.errorColor,
+                  color: AppTheme.textSecondary,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -675,7 +714,7 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
                 ],
                 const SizedBox(width: AppTheme.spacingSm),
                 SizedBox(
-                  width: 80,
+                  width: 70,
                   child: TextFormField(
                     initialValue: indicator['unit'] as String,
                     decoration: const InputDecoration(
