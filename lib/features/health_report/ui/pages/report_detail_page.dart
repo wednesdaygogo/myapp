@@ -609,6 +609,7 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
     final indicator = _editedIndicators[index];
     final type = indicator['type'] as String;
     final isBP = type == 'bloodPressure';
+    final isCustom = type == 'custom';
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppTheme.spacingMd),
@@ -633,13 +634,38 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  '指标 ${index + 1}: ${_getTypeName(type)}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
+                Expanded(
+                  child: isCustom
+                      ? TextFormField(
+                          initialValue:
+                              indicator['customName'] as String? ?? '',
+                          decoration: const InputDecoration(
+                            labelText: '指标名称',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: AppTheme.spacingSm,
+                              vertical: AppTheme.spacingSm,
+                            ),
+                            isDense: true,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _editedIndicators[index]['customName'] = value;
+                            });
+                          },
+                        )
+                      : Text(
+                          '指标 ${index + 1}: ${_getTypeName(type, null)}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.textSecondary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete_outline, size: 18),
@@ -672,9 +698,11 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
                       if (numValue != null) {
                         setState(() {
                           _editedIndicators[index]['value'] = numValue;
-                          _editedIndicators[index]['isAbnormal'] =
-                              _checkIfAbnormal(type, numValue,
-                                  indicator['secondValue'] as double?);
+                          if (!isCustom) {
+                            _editedIndicators[index]['isAbnormal'] =
+                                _checkIfAbnormal(type, numValue,
+                                    indicator['secondValue'] as double?);
+                          }
                         });
                       }
                     },
@@ -735,88 +763,29 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
               ],
             ),
           ),
+          if (isCustom)
+            Padding(
+              padding: const EdgeInsets.only(
+                left: AppTheme.spacingMd,
+                right: AppTheme.spacingMd,
+                bottom: AppTheme.spacingMd,
+              ),
+              child: Row(
+                children: [
+                  const Text('是否异常：'),
+                  const Spacer(),
+                  Switch(
+                    value: indicator['isAbnormal'] as bool,
+                    onChanged: (value) {
+                      setState(() {
+                        _editedIndicators[index]['isAbnormal'] = value;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
         ],
-      ),
-    );
-  }
-
-  String _getTypeName(String type) {
-    switch (type) {
-      case 'bloodGlucose':
-        return '血糖';
-      case 'bloodPressure':
-        return '血压';
-      case 'bloodLipidTC':
-        return '总胆固醇';
-      case 'bloodLipidTG':
-        return '甘油三酯';
-      case 'bloodLipidHDL':
-        return '高密度脂蛋白';
-      case 'bloodLipidLDL':
-        return '低密度脂蛋白';
-      default:
-        return type;
-    }
-  }
-
-  void _addNewIndicator() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('添加指标'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              title: const Text('血糖'),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() {
-                  _editedIndicators.add({
-                    'id': 0,
-                    'type': 'bloodGlucose',
-                    'value': 5.0,
-                    'secondValue': null,
-                    'unit': 'mmol/L',
-                    'isAbnormal': false,
-                  });
-                });
-              },
-            ),
-            ListTile(
-              title: const Text('血压'),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() {
-                  _editedIndicators.add({
-                    'id': 0,
-                    'type': 'bloodPressure',
-                    'value': 120.0,
-                    'secondValue': 80.0,
-                    'unit': 'mmHg',
-                    'isAbnormal': false,
-                  });
-                });
-              },
-            ),
-            ListTile(
-              title: const Text('总胆固醇'),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() {
-                  _editedIndicators.add({
-                    'id': 0,
-                    'type': 'bloodLipidTC',
-                    'value': 4.5,
-                    'secondValue': null,
-                    'unit': 'mmol/L',
-                    'isAbnormal': false,
-                  });
-                });
-              },
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -843,6 +812,154 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
             child: const Text('删除'),
           ),
         ],
+      ),
+    );
+  }
+
+  String _getTypeName(String type, String? customName) {
+    if (type == 'custom') {
+      return customName ?? '自定义';
+    }
+    switch (type) {
+      case 'bloodGlucose':
+        return '血糖';
+      case 'bloodPressure':
+        return '血压';
+      case 'bloodLipidTC':
+        return '总胆固醇';
+      case 'bloodLipidTG':
+        return '甘油三酯';
+      case 'bloodLipidHDL':
+        return '高密度脂蛋白';
+      case 'bloodLipidLDL':
+        return '低密度脂蛋白';
+      default:
+        return type;
+    }
+  }
+
+  void _addNewIndicator() {
+    final nameController = TextEditingController();
+    final valueController = TextEditingController();
+    final secondValueController = TextEditingController();
+    final unitController = TextEditingController(text: 'mmol/L');
+    bool isAbnormal = false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('添加指标'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: '指标名称',
+                    hintText: '例如：血尿酸',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                TextField(
+                  controller: valueController,
+                  decoration: const InputDecoration(
+                    labelText: '数值',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                TextField(
+                  controller: secondValueController,
+                  decoration: const InputDecoration(
+                    labelText: '第二数值（可选）',
+                    hintText: '例如：血压舒张压',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                TextField(
+                  controller: unitController,
+                  decoration: const InputDecoration(
+                    labelText: '单位',
+                    hintText: '例如：mmol/L',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingMd),
+                Row(
+                  children: [
+                    const Text('是否异常：'),
+                    const Spacer(),
+                    Switch(
+                      value: isAbnormal,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          isAbnormal = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                final value = double.tryParse(valueController.text);
+                final secondValue = double.tryParse(secondValueController.text);
+                final unit = unitController.text.trim();
+
+                if (name.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('请输入指标名称')),
+                  );
+                  return;
+                }
+
+                if (value == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('请输入有效的数值')),
+                  );
+                  return;
+                }
+
+                if (unit.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('请输入单位')),
+                  );
+                  return;
+                }
+
+                Navigator.pop(context);
+                setState(() {
+                  _editedIndicators.add({
+                    'id': 0,
+                    'type': 'custom',
+                    'customName': name,
+                    'value': value,
+                    'secondValue': secondValue,
+                    'unit': unit,
+                    'isAbnormal': isAbnormal,
+                  });
+                });
+              },
+              child: const Text('添加'),
+            ),
+          ],
+        ),
       ),
     );
   }
