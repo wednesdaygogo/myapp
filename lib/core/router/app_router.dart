@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../theme/app_theme.dart';
+import '../theme/crayon_theme.dart';
 import '../../features/person/ui/pages/person_list_page.dart';
 import '../../features/person/ui/pages/person_detail_page.dart';
 import '../../features/person/ui/pages/person_form_page.dart';
 import '../../features/health_report/ui/pages/report_list_page.dart';
 import '../../features/health_report/ui/pages/report_detail_page.dart';
 import '../../features/health_report/ui/pages/report_import_page.dart';
+import '../../features/health_report/ui/pages/person_report_detail_page.dart';
 import '../../features/family_tree/ui/pages/family_tree_page.dart';
 
 // Shell with bottom navigation
@@ -29,8 +30,8 @@ class MainShell extends StatelessWidget {
       body: child,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
-        selectedItemColor: AppTheme.primaryColor,
-        unselectedItemColor: AppTheme.textSecondary,
+        selectedItemColor: CrayonTheme.forestGreen,
+        unselectedItemColor: CrayonTheme.darkBrown.withValues(alpha: 0.5),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.people), label: '家人'),
           BottomNavigationBarItem(icon: Icon(Icons.description), label: '报告'),
@@ -97,6 +98,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) {
               final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
               return ReportDetailPage(reportId: id);
+            },
+          ),
+          GoRoute(
+            path: '/reports/person/:personId',
+            builder: (context, state) {
+              final personId = int.tryParse(state.pathParameters['personId'] ?? '') ?? 0;
+              return PersonReportDetailPage(personId: personId);
             },
           ),
           GoRoute(
