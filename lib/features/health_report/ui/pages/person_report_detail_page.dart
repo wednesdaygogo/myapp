@@ -3,20 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../core/theme/crayon_theme.dart';
-import '../../../core/widgets/crayon_background.dart';
-import '../../../core/widgets/crayon_card.dart';
-import '../../../core/widgets/crayon_button.dart';
-import '../../../core/widgets/crayon_segmented_button.dart';
-import '../../../core/widgets/indicator_trend_chart.dart';
-import '../../../core/widgets/crayon_avatar.dart';
-import '../../../domain/entities/indicator_query.dart';
-import '../../../data/models/health_report.dart';
-import '../../../data/models/health_indicator.dart';
-import '../../person/providers/person_provider.dart';
-import '../providers/health_report_provider.dart';
-import '../providers/report_stats_provider.dart';
-import '../providers/indicator_history_provider.dart';
+import '../../../../core/theme/crayon_theme.dart';
+import '../../../../core/widgets/crayon_background.dart';
+import '../../../../core/widgets/crayon_card.dart';
+import '../../../../core/widgets/crayon_button.dart';
+import '../../../../core/widgets/crayon_segmented_button.dart';
+import '../../../../core/widgets/indicator_trend_chart.dart';
+import '../../../../core/widgets/crayon_avatar.dart';
+import '../../../../domain/entities/indicator_query.dart';
+import '../../../../data/models/health_indicator.dart';
+import '../../../person/providers/person_provider.dart';
+import '../../providers/health_report_provider.dart';
+import '../../providers/indicator_history_provider.dart';
 
 class PersonReportDetailPage extends ConsumerStatefulWidget {
   final int personId;
@@ -36,7 +34,8 @@ class _PersonReportDetailPageState extends ConsumerState<PersonReportDetailPage>
     super.initState();
     // 默认选择最近的报告
     Future.microtask(() {
-      final reports = ref.read(personReportsProvider(widget.personId));
+      if (!mounted) return;
+      final reports = ref.read(reportsByPersonProvider(widget.personId));
       if (reports.isNotEmpty) {
         setState(() {
           _selectedReportId = reports.first.id;
@@ -48,7 +47,7 @@ class _PersonReportDetailPageState extends ConsumerState<PersonReportDetailPage>
   @override
   Widget build(BuildContext context) {
     final person = ref.watch(personsProvider).where((p) => p.id == widget.personId).firstOrNull;
-    final reports = ref.watch(personReportsProvider(widget.personId));
+    final reports = ref.watch(reportsByPersonProvider(widget.personId));
     final indicatorTypes = ref.watch(indicatorTypesByPersonProvider(widget.personId));
 
     if (person == null) {
