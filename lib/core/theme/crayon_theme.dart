@@ -40,6 +40,11 @@ class CrayonTheme {
   static const double borderWiggleAmount = 3.0;
   static const double borderWidth = 2.5;
 
+  // 头像参数
+  static const double avatarSize = 64.0;
+  static const Color backgroundColor = creamWhite;
+  static const Color primaryColor = forestGreen;
+
   // 获取蜡笔风格文字主题
   static TextTheme get crayonTextTheme => const TextTheme(
     headlineLarge: TextStyle(

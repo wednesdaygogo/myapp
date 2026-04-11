@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"flutter analyze /Users/wednesday/flutter_project/myapp/lib/core/widgets/crayon_avatar.dart\",\"description\":\"Run flutter analyze after fixing import\"}",
+  "error": "Exit code 1\nAnalyzing crayon_avatar.dart...                                 \n\n  error • The getter 'avatarSize' isn't defined for the type 'CrayonTheme' • lib/core/widgets/crayon_avatar.dart:45:29 • undefined_getter\n  error • The getter 'backgroundColor' isn't defined for the type 'CrayonTheme' • lib/core/widgets/crayon_avatar.dart:46:40 • undefined_getter\n  error • The getter 'primaryColor' isn't defined for the type 'CrayonTheme' • lib/core/widgets/crayon_avatar.dart:47:36 • undefined_getter\n ...",
+  "timestamp": "2026-04-11T10:25:46.291Z",
+  "retry_count": 2
+}
