@@ -12,6 +12,12 @@ class CrayonTheme {
   static const Color darkBrown = Color(0xFF3D2914);
   static const Color softPink = Color(0xFFF8E4E1);
 
+  // 按钮颜色
+  static const Color softBlue = Color(0xFFE1EEF8);
+  static const Color darkBlue = Color(0xFF2E5C8A);
+  static const Color softRed = Color(0xFFF8E4E1);
+  static const Color darkRed = Color(0xFFB8472A);
+
   // 辅助颜色
   static const Color lightGreen = Color(0xFF6B9B7A);
   static const Color warmOrange = Color(0xFFD4956A);
