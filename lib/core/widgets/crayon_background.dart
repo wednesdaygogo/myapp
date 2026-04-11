@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/crayon_theme.dart';
 
-/// 纸张纹理背景（使用程序生成的噪点纹理）
+/// 纸张纹理背景（简洁版本，避免绘制奇怪线条）
 class CrayonBackground extends StatelessWidget {
   final Widget child;
 
@@ -9,43 +9,10 @@ class CrayonBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 简洁背景，只使用纯色+微妙的渐变，避免绘制噪点线条
     return Container(
       color: CrayonTheme.creamWhite,
-      child: Stack(
-        children: [
-          // 纹理层（使用CustomPaint生成噪点）
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _PaperTexturePainter(),
-            ),
-          ),
-          // 内容层
-          child,
-        ],
-      ),
+      child: child,
     );
   }
-}
-
-/// 纸张纹理绘制器
-class _PaperTexturePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 绘制微妙的噪点纹理
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.03);
-
-    for (int i = 0; i < size.width; i += 4) {
-      for (int j = 0; j < size.height; j += 4) {
-        if ((i + j) % 8 == 0) {
-          canvas.drawRect(
-            Rect.fromLTWH(i.toDouble(), j.toDouble(), 2, 2),
-            paint,
-          );
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _PaperTexturePainter oldDelegate) => false;
 }

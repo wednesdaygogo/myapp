@@ -22,15 +22,14 @@ class CrayonButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = _getColors(type);
+    final borderWidth = CrayonTheme.borderWidth;
 
     return GestureDetector(
       onTap: onPressed,
       child: Container(
         width: isFullWidth ? double.infinity : null,
-        padding: const EdgeInsets.symmetric(
-          horizontal: CrayonTheme.spacingLg,
-          vertical: CrayonTheme.spacingMd,
-        ),
+        // 给边框留出足够空间
+        padding: EdgeInsets.all(borderWidth + 6),
         decoration: BoxDecoration(
           color: colors.background,
           borderRadius: BorderRadius.circular(CrayonTheme.radiusMd),
@@ -43,25 +42,31 @@ class CrayonButton extends StatelessWidget {
               child: CustomPaint(
                 painter: WigglyBorderPainter(
                   borderColor: colors.border,
-                  radius: CrayonTheme.radiusMd,
+                  radius: CrayonTheme.radiusMd - borderWidth,
                 ),
               ),
             ),
-            // 内容（顶层）
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (icon != null) Icon(icon, color: colors.text, size: 20),
-                if (icon != null) const SizedBox(width: CrayonTheme.spacingSm),
-                Text(
-                  text,
-                  style: TextStyle(
-                    color: colors.text,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
+            // 内容（顶层）- 增加内部padding
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: CrayonTheme.spacingMd,
+                vertical: CrayonTheme.spacingSm,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (icon != null) Icon(icon, color: colors.text, size: 18),
+                  if (icon != null) const SizedBox(width: CrayonTheme.spacingSm),
+                  Text(
+                    text,
+                    style: TextStyle(
+                      color: colors.text,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),

@@ -361,56 +361,58 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(CrayonTheme.radiusMd)),
       ),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(CrayonTheme.spacingMd),
-              child: Row(
-                children: [
-                  Text('选择性别', style: const TextStyle(
-                    color: CrayonTheme.darkBrown,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 18,
-                  )),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(ctx),
-                    color: CrayonTheme.darkBrown,
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            ...['男', '女', '其他'].map((item) {
-              final isSelected = item == _gender;
-              return ListTile(
-                leading: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: isSelected ? CrayonTheme.forestGreen.withValues(alpha: 0.15) : CrayonTheme.darkBrown.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
-                  ),
-                  child: Icon(
-                    item == '男' ? Icons.male : item == '女' ? Icons.female : Icons.transgender,
-                    color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.darkBrown.withValues(alpha: 0.5),
-                    size: 18,
-                  ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(CrayonTheme.spacingMd),
+                child: Row(
+                  children: [
+                    Text('选择性别', style: const TextStyle(
+                      color: CrayonTheme.darkBrown,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                    )),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                      color: CrayonTheme.darkBrown,
+                    ),
+                  ],
                 ),
-                title: Text(item, style: TextStyle(
-                  color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.darkBrown,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                )),
-                trailing: isSelected ? const Text('✨', style: TextStyle(fontSize: 18)) : null,
-                onTap: () {
-                  setState(() => _gender = item);
-                  Navigator.pop(ctx);
-                },
-              );
-            }),
-          ],
+              ),
+              const Divider(height: 1),
+              ...['男', '女', '其他'].map((item) {
+                final isSelected = item == _gender;
+                return ListTile(
+                  leading: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: isSelected ? CrayonTheme.forestGreen.withValues(alpha: 0.15) : CrayonTheme.darkBrown.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
+                    ),
+                    child: Icon(
+                      item == '男' ? Icons.male : item == '女' ? Icons.female : Icons.transgender,
+                      color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.darkBrown.withValues(alpha: 0.5),
+                      size: 18,
+                    ),
+                  ),
+                  title: Text(item, style: TextStyle(
+                    color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.darkBrown,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  )),
+                  trailing: isSelected ? const Text('✨', style: TextStyle(fontSize: 18)) : null,
+                  onTap: () {
+                    setState(() => _gender = item);
+                    Navigator.pop(ctx);
+                  },
+                );
+              }),
+            ],
+          ),
         ),
       ),
     );
@@ -424,56 +426,58 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(CrayonTheme.radiusMd)),
       ),
       builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(CrayonTheme.spacingMd),
-              child: Row(
-                children: [
-                  Text('选择关系', style: const TextStyle(
-                    color: CrayonTheme.darkBrown,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 18,
-                  )),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(ctx),
-                    color: CrayonTheme.darkBrown,
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            ...['本人', '配偶', '父亲', '母亲', '子女', '其他'].map((item) {
-              final isSelected = item == _relationship;
-              return ListTile(
-                leading: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: isSelected ? CrayonTheme.forestGreen.withValues(alpha: 0.15) : CrayonTheme.darkBrown.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
-                  ),
-                  child: Icon(
-                    _getRelationshipIcon(item),
-                    color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.darkBrown.withValues(alpha: 0.5),
-                    size: 18,
-                  ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(CrayonTheme.spacingMd),
+                child: Row(
+                  children: [
+                    Text('选择关系', style: const TextStyle(
+                      color: CrayonTheme.darkBrown,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
+                    )),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                      color: CrayonTheme.darkBrown,
+                    ),
+                  ],
                 ),
-                title: Text(item, style: TextStyle(
-                  color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.darkBrown,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                )),
-                trailing: isSelected ? const Text('✨', style: TextStyle(fontSize: 18)) : null,
-                onTap: () {
-                  setState(() => _relationship = item);
-                  Navigator.pop(ctx);
-                },
-              );
-            }),
-          ],
+              ),
+              const Divider(height: 1),
+              ...['本人', '配偶', '父亲', '母亲', '子女', '其他'].map((item) {
+                final isSelected = item == _relationship;
+                return ListTile(
+                  leading: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: isSelected ? CrayonTheme.forestGreen.withValues(alpha: 0.15) : CrayonTheme.darkBrown.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
+                    ),
+                    child: Icon(
+                      _getRelationshipIcon(item),
+                      color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.darkBrown.withValues(alpha: 0.5),
+                      size: 18,
+                    ),
+                  ),
+                  title: Text(item, style: TextStyle(
+                    color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.darkBrown,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  )),
+                  trailing: isSelected ? const Text('✨', style: TextStyle(fontSize: 18)) : null,
+                  onTap: () {
+                    setState(() => _relationship = item);
+                    Navigator.pop(ctx);
+                  },
+                );
+              }),
+            ],
+          ),
         ),
       ),
     );
