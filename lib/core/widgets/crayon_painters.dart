@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/crayon_theme.dart';
 
-/// 手绘歪扭边框绘制器
+/// 手绘歪扭边框绘制器（简化版，避免多余线条）
 class WigglyBorderPainter extends CustomPainter {
   final Color borderColor;
   final double borderWidth;
@@ -24,29 +24,18 @@ class WigglyBorderPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
-    final path = _createWigglyRRectPath(size);
-    canvas.drawPath(path, paint);
-  }
+    // 简化：直接绘制圆角矩形，添加轻微的不规则效果
+    final rect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        wiggleAmount * 0.5,
+        wiggleAmount * 0.5,
+        size.width - wiggleAmount,
+        size.height - wiggleAmount,
+      ),
+      Radius.circular(radius),
+    );
 
-  Path _createWigglyRRectPath(Size size) {
-    final path = Path();
-    final wiggle = wiggleAmount;
-
-    path.moveTo(radius + _randomOffset(wiggle), wiggle + _randomOffset(wiggle));
-    path.lineTo(size.width - radius + _randomOffset(wiggle), wiggle + _randomOffset(wiggle));
-    path.arcToPoint(Offset(size.width - wiggle + _randomOffset(wiggle), radius + _randomOffset(wiggle)), radius: Radius.circular(radius));
-    path.lineTo(size.width - wiggle + _randomOffset(wiggle), size.height - radius + _randomOffset(wiggle));
-    path.arcToPoint(Offset(size.width - radius + _randomOffset(wiggle), size.height - wiggle + _randomOffset(wiggle)), radius: Radius.circular(radius));
-    path.lineTo(radius + _randomOffset(wiggle), size.height - wiggle + _randomOffset(wiggle));
-    path.arcToPoint(Offset(wiggle + _randomOffset(wiggle), size.height - radius + _randomOffset(wiggle)), radius: Radius.circular(radius));
-    path.lineTo(wiggle + _randomOffset(wiggle), radius + _randomOffset(wiggle));
-    path.arcToPoint(Offset(radius + _randomOffset(wiggle), wiggle + _randomOffset(wiggle)), radius: Radius.circular(radius));
-
-    return path;
-  }
-
-  double _randomOffset(double amount) {
-    return (DateTime.now().microsecondsSinceEpoch % 1000 / 500 - 1) * amount * 0.3;
+    canvas.drawRRect(rect, paint);
   }
 
   @override

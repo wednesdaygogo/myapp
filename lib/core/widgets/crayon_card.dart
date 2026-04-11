@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/crayon_theme.dart';
-import 'crayon_painters.dart';
 
-/// 蜡笔风格卡片（手绘边框）
+/// 蜡笔风格卡片（简单边框，避免多余线条）
 class CrayonCard extends StatelessWidget {
   final Widget child;
   final Color backgroundColor;
@@ -22,35 +21,20 @@ class CrayonCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectivePadding = padding ?? const EdgeInsets.all(CrayonTheme.spacingMd);
-    final borderWidth = CrayonTheme.borderWidth;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        // 给边框留出空间
-        padding: EdgeInsets.all(borderWidth + 4),
+        padding: effectivePadding,
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(CrayonTheme.radiusMd),
+          border: Border.all(
+            color: borderColor,
+            width: CrayonTheme.borderWidth,
+          ),
         ),
-        child: Stack(
-          children: [
-            // 手绘边框（底层）
-            Positioned.fill(
-              child: CustomPaint(
-                painter: WigglyBorderPainter(
-                  borderColor: borderColor,
-                  radius: CrayonTheme.radiusMd - borderWidth,
-                ),
-              ),
-            ),
-            // 内容（顶层）- 带内边距避开边框
-            Padding(
-              padding: effectivePadding,
-              child: child,
-            ),
-          ],
-        ),
+        child: child,
       ),
     );
   }

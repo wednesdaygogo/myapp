@@ -32,7 +32,7 @@ class PresetAvatars {
   };
 }
 
-/// 手绘风格头像组件
+/// 手绘风格头像组件（简化边框）
 class CrayonAvatar extends StatelessWidget {
   final String? presetName; // 预设头像名称
   final String? customImagePath; // 用户上传图片路径
@@ -49,25 +49,18 @@ class CrayonAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: size,
       height: size,
-      child: Stack(
-        children: [
-          // 手绘圆形边框（底层）
-          Positioned.fill(
-            child: CustomPaint(
-              painter: _WigglyCirclePainter(
-                borderColor: borderColor,
-                borderWidth: 2,
-              ),
-            ),
-          ),
-          // 头像内容（顶层）
-          Center(
-            child: _buildAvatarContent(),
-          ),
-        ],
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: borderColor,
+          width: 2,
+        ),
+      ),
+      child: Center(
+        child: _buildAvatarContent(),
       ),
     );
   }
@@ -90,65 +83,5 @@ class CrayonAvatar extends StatelessWidget {
     }
 
     return Icon(Icons.person, size: size * 0.5, color: AppTheme.textSecondary);
-  }
-}
-
-/// 手绘风格圆形边框Painter
-class _WigglyCirclePainter extends CustomPainter {
-  final Color borderColor;
-  final double borderWidth;
-
-  _WigglyCirclePainter({
-    required this.borderColor,
-    required this.borderWidth,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width - borderWidth) / 2;
-
-    final paint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = borderWidth
-      ..strokeCap = StrokeCap.round;
-
-    // 生成 wiggle 点
-    const segments = 36;
-    final path = Path();
-
-    for (int i = 0; i <= segments; i++) {
-      final angle = (i / segments) * 2 * 3.14159;
-      // 添加随机 wiggle 偏移
-      final wiggle = _sin(angle * 6) * 2 + _cos(angle * 4) * 1.5;
-      final r = radius + wiggle;
-
-      final x = center.dx + r * _cos(angle);
-      final y = center.dy + r * _sin(angle);
-
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  double _sin(double x) {
-    // 简单近似
-    return x - (x * x * x) / 6 + (x * x * x * x * x) / 120;
-  }
-
-  double _cos(double x) {
-    return _sin(x + 1.5708);
-  }
-
-  @override
-  bool shouldRepaint(covariant _WigglyCirclePainter oldDelegate) {
-    return borderColor != oldDelegate.borderColor || borderWidth != oldDelegate.borderWidth;
   }
 }

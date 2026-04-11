@@ -24,24 +24,27 @@ final personReportStatsProvider = Provider.family<PersonReportStats, int>((ref, 
   );
 });
 
-/// 所有家人的报告统计列表
+/// 只返回有报告的家人统计列表
 final personsWithReportStatsProvider = Provider<List<PersonWithStats>>((ref) {
   final allReports = ref.watch(healthReportsProvider);
   final persons = ref.watch(personsProvider);
 
-  return persons.map((person) {
-    final reports = allReports.where((r) => r.personId == person.id).toList();
-    reports.sort((a, b) => b.reportDate.compareTo(a.reportDate));
+  // 只返回有报告的家人
+  return persons
+      .where((person) => allReports.any((r) => r.personId == person.id))
+      .map((person) {
+        final reports = allReports.where((r) => r.personId == person.id).toList();
+        reports.sort((a, b) => b.reportDate.compareTo(a.reportDate));
 
-    return PersonWithStats(
-      person: person,
-      stats: PersonReportStats(
-        personId: person.id,
-        reportCount: reports.length,
-        latestReportDate: reports.isEmpty ? null : reports.first.reportDate,
-      ),
-    );
-  }).toList();
+        return PersonWithStats(
+          person: person,
+          stats: PersonReportStats(
+            personId: person.id,
+            reportCount: reports.length,
+            latestReportDate: reports.isEmpty ? null : reports.first.reportDate,
+          ),
+        );
+      }).toList();
 });
 
 /// 家人+统计组合结构

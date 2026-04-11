@@ -1,9 +1,8 @@
 // lib/core/widgets/crayon_input.dart
 import 'package:flutter/material.dart';
 import '../theme/crayon_theme.dart';
-import 'crayon_painters.dart';
 
-/// 蜡笔风格输入框
+/// 蜡笔风格输入框（简单边框）
 class CrayonInput extends StatelessWidget {
   final String? label;
   final String? hint;
@@ -34,8 +33,6 @@ class CrayonInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderWidth = CrayonTheme.borderWidth;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -61,51 +58,37 @@ class CrayonInput extends StatelessWidget {
             ),
           ),
         Container(
-          // 给边框留出空间
-          padding: EdgeInsets.all(borderWidth + 4),
+          padding: const EdgeInsets.symmetric(
+            horizontal: CrayonTheme.spacingMd,
+            vertical: CrayonTheme.spacingSm,
+          ),
           decoration: BoxDecoration(
             color: CrayonTheme.creamWhite,
             borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
+            border: Border.all(
+              color: CrayonTheme.darkBrown.withValues(alpha: 0.6),
+              width: CrayonTheme.borderWidth,
+            ),
           ),
-          child: Stack(
-            children: [
-              // 手绘边框（底层）
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: WigglyBorderPainter(
-                    borderColor: CrayonTheme.darkBrown.withValues(alpha: 0.6),
-                    radius: CrayonTheme.radiusSm - borderWidth,
-                  ),
-                ),
-              ),
-              // 输入框内容（顶层）
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: CrayonTheme.spacingMd,
-                  vertical: CrayonTheme.spacingSm,
-                ),
-                child: TextFormField(
-                  controller: controller,
-                  initialValue: initialValue,
-                  keyboardType: keyboardType,
-                  validator: validator,
-                  onChanged: onChanged,
-                  readOnly: readOnly,
-                  onTap: onTap,
-                  decoration: InputDecoration(
-                    hintText: hint,
-                    hintStyle: TextStyle(color: CrayonTheme.darkBrown.withValues(alpha: 0.4)),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                    suffixIcon: suffixIcon,
-                  ),
-                  style: const TextStyle(
-                    color: CrayonTheme.darkBrown,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
+          child: TextFormField(
+            controller: controller,
+            initialValue: initialValue,
+            keyboardType: keyboardType,
+            validator: validator,
+            onChanged: onChanged,
+            readOnly: readOnly,
+            onTap: onTap,
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: CrayonTheme.darkBrown.withValues(alpha: 0.4)),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+              suffixIcon: suffixIcon,
+            ),
+            style: const TextStyle(
+              color: CrayonTheme.darkBrown,
+              fontSize: 14,
+            ),
           ),
         ),
       ],
