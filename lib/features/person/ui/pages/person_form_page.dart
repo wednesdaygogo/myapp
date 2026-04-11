@@ -299,42 +299,51 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
   }) {
     return CrayonCard(
       onTap: onTap,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: CrayonTheme.forestGreen.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
-            ),
-            child: Icon(icon, size: 18, color: CrayonTheme.forestGreen),
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: CrayonTheme.forestGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
+                ),
+                child: Icon(icon, size: 18, color: CrayonTheme.forestGreen),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(label, style: const TextStyle(
+                  color: CrayonTheme.darkBrown,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                )),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Text(label, style: const TextStyle(
-            color: CrayonTheme.darkBrown,
-            fontWeight: FontWeight.w500,
-            fontSize: 14,
-          )),
-          const Spacer(),
+          const SizedBox(height: CrayonTheme.spacingSm),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: CrayonTheme.creamWhite,
               borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
               border: Border.all(color: CrayonTheme.darkBrown.withValues(alpha: 0.3)),
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  value ?? placeholder,
-                  style: TextStyle(
-                    color: value != null ? CrayonTheme.darkBrown : CrayonTheme.darkBrown.withValues(alpha: 0.5),
-                    fontSize: 14,
+                Expanded(
+                  child: Text(
+                    value ?? placeholder,
+                    style: TextStyle(
+                      color: value != null ? CrayonTheme.darkBrown : CrayonTheme.darkBrown.withValues(alpha: 0.5),
+                      fontSize: 14,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 6),
                 const Icon(Icons.chevron_right, size: 18, color: CrayonTheme.forestGreen),
               ],
             ),
