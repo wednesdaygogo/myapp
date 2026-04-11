@@ -4,7 +4,7 @@ import '../theme/crayon_theme.dart';
 
 /// 蜡笔风格分段按钮（用于选择器）
 class CrayonSegmentedButton<T> extends StatelessWidget {
-  final List<_SegmentOption<T>> options;
+  final List<SegmentOption<T>> options;
   final T selectedValue;
   final ValueChanged<T>? onSelectionChanged;
 
@@ -33,7 +33,7 @@ class CrayonSegmentedButton<T> extends StatelessWidget {
               color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.creamWhite,
               borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
               border: Border.all(
-                color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.darkBrown.withOpacity(0.5),
+                color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.darkBrown.withValues(alpha: 0.5),
                 width: 1.5,
               ),
             ),
@@ -69,19 +69,19 @@ class CrayonSegmentedButton<T> extends StatelessWidget {
   }
 }
 
-class _SegmentOption<T> {
+class SegmentOption<T> {
   final T value;
   final String label;
   final IconData? icon;
 
-  const _SegmentOption({
+  const SegmentOption({
     required this.value,
     required this.label,
     this.icon,
   });
 
   // 便捷构造方法
-  static _SegmentOption<T> create<T>(T value, String label, {IconData? icon}) {
-    return _SegmentOption<T>(value: value, label: label, icon: icon);
+  static SegmentOption<T> create<T>(T value, String label, {IconData? icon}) {
+    return SegmentOption<T>(value: value, label: label, icon: icon);
   }
 }
