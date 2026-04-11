@@ -34,6 +34,8 @@ class CrayonInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final borderWidth = CrayonTheme.borderWidth;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -59,42 +61,47 @@ class CrayonInput extends StatelessWidget {
             ),
           ),
         Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: CrayonTheme.spacingMd,
-            vertical: CrayonTheme.spacingSm,
-          ),
+          // 给边框留出空间
+          padding: EdgeInsets.all(borderWidth + 4),
           decoration: BoxDecoration(
             color: CrayonTheme.creamWhite,
             borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
           ),
           child: Stack(
             children: [
-              TextFormField(
-                controller: controller,
-                initialValue: initialValue,
-                keyboardType: keyboardType,
-                validator: validator,
-                onChanged: onChanged,
-                readOnly: readOnly,
-                onTap: onTap,
-                decoration: InputDecoration(
-                  hintText: hint,
-                  hintStyle: TextStyle(color: CrayonTheme.darkBrown.withValues(alpha: 0.4)),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                  suffixIcon: suffixIcon,
-                ),
-                style: const TextStyle(
-                  color: CrayonTheme.darkBrown,
-                  fontSize: 14,
-                ),
-              ),
-              // 手绘边框
+              // 手绘边框（底层）
               Positioned.fill(
                 child: CustomPaint(
                   painter: WigglyBorderPainter(
                     borderColor: CrayonTheme.darkBrown.withValues(alpha: 0.6),
-                    radius: CrayonTheme.radiusSm,
+                    radius: CrayonTheme.radiusSm - borderWidth,
+                  ),
+                ),
+              ),
+              // 输入框内容（顶层）
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: CrayonTheme.spacingMd,
+                  vertical: CrayonTheme.spacingSm,
+                ),
+                child: TextFormField(
+                  controller: controller,
+                  initialValue: initialValue,
+                  keyboardType: keyboardType,
+                  validator: validator,
+                  onChanged: onChanged,
+                  readOnly: readOnly,
+                  onTap: onTap,
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: TextStyle(color: CrayonTheme.darkBrown.withValues(alpha: 0.4)),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                    suffixIcon: suffixIcon,
+                  ),
+                  style: const TextStyle(
+                    color: CrayonTheme.darkBrown,
+                    fontSize: 14,
                   ),
                 ),
               ),

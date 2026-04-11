@@ -7,7 +7,7 @@ class CrayonCard extends StatelessWidget {
   final Widget child;
   final Color backgroundColor;
   final Color borderColor;
-  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry? padding;
   final VoidCallback? onTap;
 
   const CrayonCard({
@@ -15,16 +15,20 @@ class CrayonCard extends StatelessWidget {
     required this.child,
     this.backgroundColor = CrayonTheme.creamWhite,
     this.borderColor = CrayonTheme.darkBrown,
-    this.padding = const EdgeInsets.all(CrayonTheme.spacingMd),
+    this.padding,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectivePadding = padding ?? const EdgeInsets.all(CrayonTheme.spacingMd);
+    final borderWidth = CrayonTheme.borderWidth;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: padding,
+        // 给边框留出空间
+        padding: EdgeInsets.all(borderWidth + 4),
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(CrayonTheme.radiusMd),
@@ -36,12 +40,15 @@ class CrayonCard extends StatelessWidget {
               child: CustomPaint(
                 painter: WigglyBorderPainter(
                   borderColor: borderColor,
-                  radius: CrayonTheme.radiusMd,
+                  radius: CrayonTheme.radiusMd - borderWidth,
                 ),
               ),
             ),
-            // 内容（顶层）
-            child,
+            // 内容（顶层）- 带内边距避开边框
+            Padding(
+              padding: effectivePadding,
+              child: child,
+            ),
           ],
         ),
       ),
