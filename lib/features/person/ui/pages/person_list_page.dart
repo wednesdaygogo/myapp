@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/crayon_theme.dart';
+import '../../../../core/widgets/crayon_background.dart';
+import '../../../../core/widgets/crayon_card.dart';
+import '../../../../core/widgets/crayon_avatar.dart';
 import '../../providers/person_provider.dart';
 
 class PersonListPage extends ConsumerWidget {
@@ -12,30 +15,31 @@ class PersonListPage extends ConsumerWidget {
     final persons = ref.watch(personsProvider);
 
     return Scaffold(
+      backgroundColor: CrayonTheme.creamWhite,
       appBar: AppBar(
-        title: const Text('家人管理'),
-        titleTextStyle: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w500,
-          color: AppTheme.textPrimary,
-        ),
+        backgroundColor: CrayonTheme.creamWhite,
+        title: const Text('家人管理 🏠'),
+        centerTitle: true,
+        foregroundColor: CrayonTheme.darkBrown,
       ),
-      body: persons.isEmpty
-          ? _buildEmptyState(context)
-          : ListView.separated(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingMd,
-                vertical: AppTheme.spacingMd,
+      body: CrayonBackground(
+        child: persons.isEmpty
+            ? _buildEmptyState(context)
+            : ListView.builder(
+                padding: const EdgeInsets.all(CrayonTheme.spacingMd),
+                itemCount: persons.length,
+                itemBuilder: (context, index) {
+                  final person = persons[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: CrayonTheme.spacingMd),
+                    child: _buildPersonCard(context, person),
+                  );
+                },
               ),
-              itemCount: persons.length,
-              separatorBuilder: (_, __) =>
-                  const SizedBox(height: AppTheme.spacingSm),
-              itemBuilder: (context, index) {
-                final person = persons[index];
-                return _buildPersonCard(context, person);
-              },
-            ),
+      ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: CrayonTheme.forestGreen,
+        foregroundColor: Colors.white,
         onPressed: () => context.go('/persons/new'),
         child: const Icon(Icons.add, size: 28),
       ),
@@ -47,25 +51,21 @@ class PersonListPage extends ConsumerWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.person_outline,
             size: 64,
-            color: AppTheme.textTertiary,
+            color: CrayonTheme.forestGreen,
           ),
-          const SizedBox(height: AppTheme.spacingMd),
+          const SizedBox(height: CrayonTheme.spacingMd),
           Text(
             '暂无家人信息',
-            style: TextStyle(
-              fontSize: 16,
-              color: AppTheme.textSecondary,
-            ),
+            style: CrayonTheme.crayonTextTheme.titleMedium,
           ),
-          const SizedBox(height: AppTheme.spacingXs),
+          const SizedBox(height: CrayonTheme.spacingSm),
           Text(
-            '点击右上角添加',
+            '点击右下角按钮添加',
             style: TextStyle(
-              fontSize: 14,
-              color: AppTheme.textTertiary,
+              color: CrayonTheme.darkBrown.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -74,69 +74,39 @@ class PersonListPage extends ConsumerWidget {
   }
 
   Widget _buildPersonCard(BuildContext context, dynamic person) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.borderColor, width: 0.5),
-      ),
-      child: InkWell(
-        onTap: () => context.go('/persons/${person.id}'),
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spacingMd),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+    return CrayonCard(
+      onTap: () => context.go('/persons/${person.id}'),
+      child: Row(
+        children: [
+          CrayonAvatar(
+            presetName: person.photoPath,
+            size: 48,
+          ),
+          const SizedBox(width: CrayonTheme.spacingMd),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  person.name,
+                  style: CrayonTheme.crayonTextTheme.titleMedium,
                 ),
-                child: Center(
-                  child: Text(
-                    person.name.isNotEmpty ? person.name[0] : '?',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: AppTheme.primaryColor,
-                    ),
+                const SizedBox(height: CrayonTheme.spacingSm),
+                Text(
+                  '${person.relationship ?? "未知"} · ${person.age}岁',
+                  style: TextStyle(
+                    color: CrayonTheme.darkBrown.withValues(alpha: 0.7),
+                    fontSize: 12,
                   ),
                 ),
-              ),
-              const SizedBox(width: AppTheme.spacingMd),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      person.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${person.relationship ?? "未知"} · ${person.age}岁',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right,
-                color: AppTheme.textTertiary,
-                size: 20,
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          Icon(
+            Icons.chevron_right,
+            color: CrayonTheme.forestGreen,
+          ),
+        ],
       ),
     );
   }
