@@ -1,13 +1,15 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/crayon_theme.dart';
+import '../../../../core/widgets/crayon_background.dart';
+import '../../../../core/widgets/crayon_card.dart';
+import '../../../../core/widgets/crayon_avatar.dart';
 import '../../../../data/models/person.dart';
 import '../../providers/person_provider.dart';
+import '../../../health_report/providers/report_stats_provider.dart';
 
 class PersonDetailPage extends ConsumerStatefulWidget {
   final int personId;
@@ -22,6 +24,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      if (!mounted) return;
       ref.read(selectedPersonIdProvider.notifier).state = widget.personId;
     });
   }
@@ -29,10 +32,15 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
   @override
   Widget build(BuildContext context) {
     final person = ref.watch(selectedPersonProvider);
+    final stats = ref.watch(personReportStatsProvider(widget.personId));
 
     return Scaffold(
+      backgroundColor: CrayonTheme.creamWhite,
       appBar: AppBar(
-        title: const Text('家人详情'),
+        backgroundColor: CrayonTheme.creamWhite,
+        title: const Text('家人详情 🌟'),
+        centerTitle: true,
+        foregroundColor: CrayonTheme.darkBrown,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
@@ -46,82 +54,98 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
       ),
       body: person == null
           ? const Center(child: Text('未找到'))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(AppTheme.spacingMd),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Avatar Section
-                  _buildAvatarSection(person),
-                  const SizedBox(height: AppTheme.spacingLg),
+          : CrayonBackground(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(CrayonTheme.spacingMd),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Avatar Section
+                    _buildAvatarSection(person),
+                    const SizedBox(height: CrayonTheme.spacingLg),
 
-                  // Basic Info Card
-                  _buildInfoCard(
-                    title: '基本信息',
-                    icon: Icons.person_outline,
-                    items: [
-                      _InfoItem(
-                        icon: Icons.badge_outlined,
-                        label: '姓名',
-                        value: person.name,
-                        isRequired: true,
+                    // Basic Info Card
+                    CrayonCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('📋 基本信息', style: CrayonTheme.crayonTextTheme.titleMedium),
+                          const SizedBox(height: CrayonTheme.spacingMd),
+                          _buildInfoRow(Icons.badge_outlined, '姓名', person.name, isRequired: true),
+                          _buildInfoRow(Icons.wc_outlined, '性别', person.gender ?? '未填写'),
+                          _buildInfoRow(Icons.cake_outlined, '出生日期', person.birthDate != null
+                              ? DateFormat('yyyy年MM月dd日').format(person.birthDate!)
+                              : '未填写'),
+                          _buildInfoRow(Icons.hourglass_empty_outlined, '年龄', '${person.age}岁'),
+                        ],
                       ),
-                      _InfoItem(
-                        icon: Icons.wc_outlined,
-                        label: '性别',
-                        value: person.gender ?? '未填写',
-                      ),
-                      _InfoItem(
-                        icon: Icons.cake_outlined,
-                        label: '出生日期',
-                        value: person.birthDate != null
-                            ? DateFormat('yyyy年MM月dd日')
-                                .format(person.birthDate!)
-                            : '未填写',
-                      ),
-                      _InfoItem(
-                        icon: Icons.hourglass_empty_outlined,
-                        label: '年龄',
-                        value: '${person.age}岁',
-                        showBadge: person.age > 0,
-                        badgeColor: AppTheme.primaryColor,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppTheme.spacingMd),
+                    ),
+                    const SizedBox(height: CrayonTheme.spacingMd),
 
-                  // Contact Info Card
-                  _buildInfoCard(
-                    title: '联系方式',
-                    icon: Icons.contact_phone_outlined,
-                    items: [
-                      _InfoItem(
-                        icon: Icons.phone_outlined,
-                        label: '电话',
-                        value: person.phone ?? '未填写',
+                    // Contact Info Card
+                    CrayonCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('📞 联系方式', style: CrayonTheme.crayonTextTheme.titleMedium),
+                          const SizedBox(height: CrayonTheme.spacingMd),
+                          _buildInfoRow(Icons.phone_outlined, '电话', person.phone ?? '未填写'),
+                          _buildInfoRow(Icons.credit_card_outlined, '身份证号', person.idNumber ?? '未填写'),
+                        ],
                       ),
-                      _InfoItem(
-                        icon: Icons.credit_card_outlined,
-                        label: '身份证号',
-                        value: person.idNumber ?? '未填写',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppTheme.spacingMd),
+                    ),
+                    const SizedBox(height: CrayonTheme.spacingMd),
 
-                  // Relationship Card
-                  _buildInfoCard(
-                    title: '家庭关系',
-                    icon: Icons.family_restroom_outlined,
-                    items: [
-                      _InfoItem(
-                        icon: Icons.favorite_outline,
-                        label: '关系',
-                        value: person.relationship ?? '未填写',
+                    // Relationship Card
+                    CrayonCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('👨‍👩‍👧 家庭关系', style: CrayonTheme.crayonTextTheme.titleMedium),
+                          const SizedBox(height: CrayonTheme.spacingMd),
+                          _buildInfoRow(Icons.favorite_outline, '关系', person.relationship ?? '未填写'),
+                        ],
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: CrayonTheme.spacingMd),
+
+                    // Health Report Summary
+                    CrayonCard(
+                      onTap: () => context.go('/reports/person/${widget.personId}'),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: CrayonTheme.forestGreen.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
+                            ),
+                            child: const Icon(Icons.description, color: CrayonTheme.forestGreen, size: 24),
+                          ),
+                          const SizedBox(width: CrayonTheme.spacingMd),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('健康报告', style: CrayonTheme.crayonTextTheme.titleMedium),
+                                const SizedBox(height: CrayonTheme.spacingSm),
+                                Text(
+                                  '${stats.reportCount}份报告 · ${stats.latestReportDateText}',
+                                  style: TextStyle(
+                                    color: CrayonTheme.darkBrown.withValues(alpha: 0.7),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right, color: CrayonTheme.forestGreen),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
     );
@@ -131,62 +155,33 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
     return Center(
       child: Column(
         children: [
-          // Avatar
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppTheme.surfaceVariant,
-              border: Border.all(
-                color: AppTheme.primaryColor.withValues(alpha: 0.2),
-                width: 3,
-              ),
-              boxShadow: AppTheme.shadowMd,
-              image: person.photoPath != null && person.photoPath!.isNotEmpty
-                  ? DecorationImage(
-                      image: FileImage(File(person.photoPath!)),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            child: person.photoPath == null || person.photoPath!.isEmpty
-                ? Icon(
-                    Icons.person,
-                    size: 60,
-                    color: AppTheme.textTertiary,
-                  )
-                : null,
+          CrayonAvatar(
+            presetName: person.photoPath,
+            size: 100,
           ),
-          const SizedBox(height: AppTheme.spacingMd),
-
-          // Name
+          const SizedBox(height: CrayonTheme.spacingMd),
           Text(
             person.name,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textPrimary,
-                ),
+            style: CrayonTheme.crayonTextTheme.titleLarge,
           ),
-          const SizedBox(height: AppTheme.spacingXs),
-
-          // Relationship Badge
+          const SizedBox(height: CrayonTheme.spacingSm),
           if (person.relationship != null && person.relationship!.isNotEmpty)
             Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingSm,
-                vertical: AppTheme.spacingXs,
+                horizontal: CrayonTheme.spacingMd,
+                vertical: CrayonTheme.spacingSm,
               ),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                color: CrayonTheme.forestGreen.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(CrayonTheme.radiusXl),
               ),
               child: Text(
                 person.relationship!,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppTheme.primaryColor,
-                      fontWeight: FontWeight.w500,
-                    ),
+                style: const TextStyle(
+                  color: CrayonTheme.forestGreen,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
               ),
             ),
         ],
@@ -194,130 +189,29 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
     );
   }
 
-  Widget _buildInfoCard({
-    required String title,
-    required IconData icon,
-    required List<_InfoItem> items,
-  }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingMd),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Card Header
-            Row(
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: AppTheme.primaryColor,
-                ),
-                const SizedBox(width: AppTheme.spacingSm),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppTheme.spacingMd),
-
-            // Divider
-            const Divider(height: 1),
-
-            // Info Items
-            ...items.map((item) => _buildInfoItemRow(item)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoItemRow(_InfoItem item) {
+  Widget _buildInfoRow(IconData icon, String label, String value, {bool isRequired = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: AppTheme.spacingMd,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: CrayonTheme.spacingSm),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Icon
           Container(
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: AppTheme.surfaceVariant,
-              borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+              color: CrayonTheme.forestGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
             ),
-            child: Icon(
-              item.icon,
-              size: 18,
-              color: AppTheme.textSecondary,
-            ),
+            child: Icon(icon, size: 18, color: CrayonTheme.forestGreen),
           ),
-          const SizedBox(width: AppTheme.spacingMd),
-
-          // Label
-          Text(
-            item.label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
-          ),
-
-          // Required indicator
-          if (item.isRequired)
-            Container(
-              margin: const EdgeInsets.only(left: AppTheme.spacingXs),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingXs,
-                vertical: 2,
-              ),
-              decoration: BoxDecoration(
-                color: AppTheme.errorColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-              ),
-              child: Text(
-                '必填',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppTheme.errorColor,
-                      fontSize: 10,
-                    ),
-              ),
+          const SizedBox(width: CrayonTheme.spacingMd),
+          Text(label, style: TextStyle(color: CrayonTheme.darkBrown.withValues(alpha: 0.7))),
+          if (isRequired)
+            const Padding(
+              padding: EdgeInsets.only(left: 4),
+              child: Text('✏️', style: TextStyle(fontSize: 12)),
             ),
-
           const Spacer(),
-
-          // Value with optional badge
-          if (item.showBadge && item.badgeColor != null)
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppTheme.spacingSm,
-                vertical: AppTheme.spacingXs,
-              ),
-              decoration: BoxDecoration(
-                color: item.badgeColor!.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-              ),
-              child: Text(
-                item.value,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: item.badgeColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-            )
-          else
-            Text(
-              item.value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppTheme.textPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
-            ),
+          Text(value, style: const TextStyle(color: CrayonTheme.darkBrown, fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -327,18 +221,17 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('确认删除'),
-        content: const Text('确定要删除此家人吗？相关健康报告也会一并删除。'),
+        backgroundColor: CrayonTheme.creamWhite,
+        title: const Text('确认删除', style: TextStyle(color: CrayonTheme.darkBrown)),
+        content: const Text('确定要删除此家人吗？相关健康报告也会一并删除。', style: TextStyle(color: CrayonTheme.darkBrown)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
+            child: const Text('取消', style: TextStyle(color: CrayonTheme.forestGreen)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppTheme.errorColor,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: CrayonTheme.brickRed),
             child: const Text('删除'),
           ),
         ],
@@ -350,22 +243,4 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
       if (mounted) context.go('/persons');
     }
   }
-}
-
-class _InfoItem {
-  final IconData icon;
-  final String label;
-  final String value;
-  final bool isRequired;
-  final bool showBadge;
-  final Color? badgeColor;
-
-  const _InfoItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.isRequired = false,
-    this.showBadge = false,
-    this.badgeColor,
-  });
 }
