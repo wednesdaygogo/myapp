@@ -20,15 +20,26 @@ class PresetAvatars {
     'owl',
   ];
 
-  static const Map<String, String> emojiMap = {
-    'bear': '🐻',
-    'fox': '🦊',
-    'cat': '🐱',
-    'dog': '🐶',
-    'panda': '🐼',
-    'polar_bear': '🐻‍❄️',
-    'rabbit': '🐰',
-    'owl': '🦉',
+  static const Map<String, IconData> iconMap = {
+    'bear': Icons.cruelty_free,       // 熊 - 动物轮廓
+    'fox': Icons.smart_toy,           // 狐狸 - 聪明的形象
+    'cat': Icons.face_4,              // 猫 - 带耳朵的脸
+    'dog': Icons.pets,                // 狗 - 爪印
+    'panda': Icons.face,              // 熊猫 - 圆脸
+    'polar_bear': Icons.ac_unit,      // 北极熊 - 雪花/冷
+    'rabbit': Icons.egg_alt,          // 兔子 - 蛋形（像兔子）
+    'owl': Icons.visibility,          // 猫头鹰 - 大眼睛
+  };
+
+  static const Map<String, Color> colorMap = {
+    'bear': Color(0xFF8B4513),
+    'fox': Color(0xFFFF6B35),
+    'cat': Color(0xFFFF9500),
+    'dog': Color(0xFFD4A574),
+    'panda': Color(0xFF333333),
+    'polar_bear': Color(0xFFE8E8E8),
+    'rabbit': Color(0xFFFFB6C1),
+    'owl': Color(0xFF5D4E37),
   };
 }
 
@@ -78,8 +89,9 @@ class CrayonAvatar extends StatelessWidget {
     }
 
     if (presetName != null) {
-      final emoji = PresetAvatars.emojiMap[presetName!] ?? '👤';
-      return Text(emoji, style: TextStyle(fontSize: size * 0.5));
+      final icon = PresetAvatars.iconMap[presetName!] ?? Icons.person;
+      final color = PresetAvatars.colorMap[presetName!] ?? AppTheme.textSecondary;
+      return Icon(icon, size: size * 0.5, color: color);
     }
 
     return Icon(Icons.person, size: size * 0.5, color: AppTheme.textSecondary);

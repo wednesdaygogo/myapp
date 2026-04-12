@@ -20,7 +20,14 @@ class ReportListPage extends ConsumerWidget {
       backgroundColor: CrayonTheme.creamWhite,
       appBar: AppBar(
         backgroundColor: CrayonTheme.creamWhite,
-        title: const Text('体检报告 📋'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('体检报告'),
+            const SizedBox(width: 8),
+            Icon(Icons.description, size: 20, color: CrayonTheme.mustardYellow),
+          ],
+        ),
         centerTitle: true,
         foregroundColor: CrayonTheme.darkBrown,
       ),

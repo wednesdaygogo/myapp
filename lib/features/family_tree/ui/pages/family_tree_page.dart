@@ -75,7 +75,14 @@ class _FamilyTreePageState extends ConsumerState<FamilyTreePage> {
       backgroundColor: CrayonTheme.creamWhite,
       appBar: AppBar(
         backgroundColor: CrayonTheme.creamWhite,
-        title: const Text('家谱图谱 🌳'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('家谱图谱'),
+            const SizedBox(width: 8),
+            Icon(Icons.account_tree, size: 20, color: CrayonTheme.forestGreen),
+          ],
+        ),
         centerTitle: true,
         foregroundColor: CrayonTheme.darkBrown,
         actions: [

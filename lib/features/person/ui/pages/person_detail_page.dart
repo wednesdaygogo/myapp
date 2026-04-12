@@ -38,7 +38,14 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
       backgroundColor: CrayonTheme.creamWhite,
       appBar: AppBar(
         backgroundColor: CrayonTheme.creamWhite,
-        title: const Text('家人详情 🌟'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('家人详情'),
+            const SizedBox(width: 8),
+            Icon(Icons.star, size: 20, color: CrayonTheme.mustardYellow),
+          ],
+        ),
         centerTitle: true,
         foregroundColor: CrayonTheme.darkBrown,
         actions: [
@@ -69,7 +76,13 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('📋 基本信息', style: CrayonTheme.crayonTextTheme.titleMedium),
+                          Row(
+                            children: [
+                              Icon(Icons.info_outline, size: 18, color: CrayonTheme.forestGreen),
+                              const SizedBox(width: 8),
+                              Text('基本信息', style: CrayonTheme.crayonTextTheme.titleMedium),
+                            ],
+                          ),
                           const SizedBox(height: CrayonTheme.spacingMd),
                           _buildInfoRow(Icons.badge_outlined, '姓名', person.name, isRequired: true),
                           _buildInfoRow(Icons.wc_outlined, '性别', person.gender ?? '未填写'),
@@ -87,7 +100,13 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('📞 联系方式', style: CrayonTheme.crayonTextTheme.titleMedium),
+                          Row(
+                            children: [
+                              Icon(Icons.phone, size: 18, color: CrayonTheme.forestGreen),
+                              const SizedBox(width: 8),
+                              Text('联系方式', style: CrayonTheme.crayonTextTheme.titleMedium),
+                            ],
+                          ),
                           const SizedBox(height: CrayonTheme.spacingMd),
                           _buildInfoRow(Icons.phone_outlined, '电话', person.phone ?? '未填写'),
                           _buildInfoRow(Icons.credit_card_outlined, '身份证号', person.idNumber ?? '未填写'),
@@ -101,7 +120,13 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('👨‍👩‍👧 家庭关系', style: CrayonTheme.crayonTextTheme.titleMedium),
+                          Row(
+                            children: [
+                              Icon(Icons.family_restroom, size: 18, color: CrayonTheme.forestGreen),
+                              const SizedBox(width: 8),
+                              Text('家庭关系', style: CrayonTheme.crayonTextTheme.titleMedium),
+                            ],
+                          ),
                           const SizedBox(height: CrayonTheme.spacingMd),
                           _buildInfoRow(Icons.favorite_outline, '关系', person.relationship ?? '未填写'),
                         ],
@@ -208,7 +233,7 @@ class _PersonDetailPageState extends ConsumerState<PersonDetailPage> {
           if (isRequired)
             const Padding(
               padding: EdgeInsets.only(left: 4),
-              child: Text('✏️', style: TextStyle(fontSize: 12)),
+              child: Icon(Icons.edit, size: 12, color: CrayonTheme.forestGreen),
             ),
           const Spacer(),
           Text(value, style: const TextStyle(color: CrayonTheme.darkBrown, fontWeight: FontWeight.w500)),

@@ -58,7 +58,7 @@ class CrayonSegmentedButton<T> extends StatelessWidget {
                 if (isSelected)
                   const Padding(
                     padding: EdgeInsets.only(left: 4),
-                    child: Text('✨', style: TextStyle(fontSize: 12)),
+                    child: Icon(Icons.check, size: 12, color: Colors.white),
                   ),
               ],
             ),

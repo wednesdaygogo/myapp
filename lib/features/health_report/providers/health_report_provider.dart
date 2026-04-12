@@ -208,9 +208,14 @@ final selectedReportProvider = Provider<HealthReport?>((ref) {
   return reports.where((r) => r.id == id).firstOrNull;
 });
 
-/// Get indicators for a report
+/// 所有指标数据的版本号，用于强制刷新
+final indicatorsVersionProvider = StateProvider<int>((ref) => 0);
+
+/// Get indicators for a report - 使用版本号确保数据刷新
 final indicatorsByReportProvider =
     Provider.family<List<HealthIndicator>, int>((ref, reportId) {
+  // 监听版本号变化，强制重新读取
+  ref.watch(indicatorsVersionProvider);
   try {
     final box = Hive.box<HealthIndicator>(healthIndicatorsBoxName);
     return box.values.where((i) => i.reportId == reportId).toList();

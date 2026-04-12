@@ -96,7 +96,14 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
       backgroundColor: CrayonTheme.creamWhite,
       appBar: AppBar(
         backgroundColor: CrayonTheme.creamWhite,
-        title: Text(isEditing ? '编辑家人 ✏️' : '新增家人 ✏️'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(isEditing ? '编辑家人' : '新增家人'),
+            const SizedBox(width: 8),
+            Icon(Icons.edit, size: 20, color: CrayonTheme.forestGreen),
+          ],
+        ),
         centerTitle: true,
         foregroundColor: CrayonTheme.darkBrown,
         elevation: 0,
@@ -143,9 +150,10 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
                               ),
                             ),
                             child: Center(
-                              child: Text(
-                                PresetAvatars.emojiMap[name]!,
-                                style: const TextStyle(fontSize: 30),
+                              child: Icon(
+                                PresetAvatars.iconMap[name] ?? Icons.person,
+                                size: 30,
+                                color: PresetAvatars.colorMap[name] ?? CrayonTheme.darkBrown,
                               ),
                             ),
                           ),
@@ -268,7 +276,7 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
               if (isRequired)
                 const Padding(
                   padding: EdgeInsets.only(left: 4),
-                  child: Text('✏️', style: TextStyle(fontSize: 12)),
+                  child: Icon(Icons.edit, size: 12, color: CrayonTheme.forestGreen),
                 ),
             ],
           ),
@@ -404,7 +412,7 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
                     color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.darkBrown,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   )),
-                  trailing: isSelected ? const Text('✨', style: TextStyle(fontSize: 18)) : null,
+                  trailing: isSelected ? const Icon(Icons.check, size: 18, color: CrayonTheme.forestGreen) : null,
                   onTap: () {
                     setState(() => _gender = item);
                     Navigator.pop(ctx);
@@ -469,7 +477,7 @@ class _PersonFormPageState extends ConsumerState<PersonFormPage> {
                     color: isSelected ? CrayonTheme.forestGreen : CrayonTheme.darkBrown,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   )),
-                  trailing: isSelected ? const Text('✨', style: TextStyle(fontSize: 18)) : null,
+                  trailing: isSelected ? const Icon(Icons.check, size: 18, color: CrayonTheme.forestGreen) : null,
                   onTap: () {
                     setState(() => _relationship = item);
                     Navigator.pop(ctx);

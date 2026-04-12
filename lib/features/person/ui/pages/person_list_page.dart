@@ -18,7 +18,14 @@ class PersonListPage extends ConsumerWidget {
       backgroundColor: CrayonTheme.creamWhite,
       appBar: AppBar(
         backgroundColor: CrayonTheme.creamWhite,
-        title: const Text('家人管理 🏠'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('家人管理'),
+            const SizedBox(width: 8),
+            Icon(Icons.home, size: 20, color: CrayonTheme.forestGreen),
+          ],
+        ),
         centerTitle: true,
         foregroundColor: CrayonTheme.darkBrown,
       ),

@@ -40,7 +40,8 @@ dependencies:
   path_provider: ^2.1.1
   pdf: ^3.10.0
   pdfrx: ^2.2.24
-  google_mlkit_text_recognition: ^0.15.1
+  # Note: google_mlkit_text_recognition removed - doesn't support iOS simulator
+  # We use pdfrx native extraction which works well for electronic PDFs
   file_picker: ^8.0.0
   image_picker: ^1.0.7
   intl: ^0.20.2

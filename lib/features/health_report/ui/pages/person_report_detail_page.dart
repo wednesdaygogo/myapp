@@ -61,7 +61,14 @@ class _PersonReportDetailPageState extends ConsumerState<PersonReportDetailPage>
       backgroundColor: CrayonTheme.creamWhite,
       appBar: AppBar(
         backgroundColor: CrayonTheme.creamWhite,
-        title: Text('${person.name}的健康报告 ✨'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('${person.name}的健康报告'),
+            const SizedBox(width: 8),
+            Icon(Icons.star, size: 18, color: CrayonTheme.mustardYellow),
+          ],
+        ),
         centerTitle: true,
         foregroundColor: CrayonTheme.darkBrown,
         actions: [
@@ -178,8 +185,10 @@ class _PersonReportDetailPageState extends ConsumerState<PersonReportDetailPage>
                                     );
                                   }).toList(),
                                   onChanged: (value) {
-                                    if (value != null) {
+                                    if (value != null && value != _selectedReportId) {
                                       setState(() => _selectedReportId = value);
+                                      // 强制刷新指标数据
+                                      ref.read(indicatorsVersionProvider.notifier).state++;
                                     }
                                   },
                                 ),
@@ -723,6 +732,7 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
   Widget _buildIndicatorEditCard(int index) {
     final indicator = _editedIndicators[index];
     final type = indicator['type'] as String;
+    final displayName = _getIndicatorDisplayName(type);
     final hasSecondValue = indicator['secondValue'] != null;
 
     return Container(
@@ -744,7 +754,7 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '指标 ${index + 1}: $type',
+                  '指标 ${index + 1}: $displayName',
                   style: TextStyle(color: CrayonTheme.darkBrown, fontWeight: FontWeight.w500),
                 ),
                 IconButton(
@@ -988,6 +998,18 @@ class _IndicatorEditPageState extends ConsumerState<_IndicatorEditPage> {
         ),
       ),
     );
+  }
+
+  String _getIndicatorDisplayName(String type) {
+    switch (type) {
+      case 'bloodGlucose': return '血糖';
+      case 'bloodPressure': return '血压';
+      case 'bloodLipidTC': return '总胆固醇';
+      case 'bloodLipidTG': return '甘油三酯';
+      case 'bloodLipidHDL': return '高密度脂蛋白';
+      case 'bloodLipidLDL': return '低密度脂蛋白';
+      default: return type; // 自定义指标直接显示名称
+    }
   }
 
   Future<void> _saveIndicators() async {

@@ -152,7 +152,13 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
       if (reportId != null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('体检报告已保存 ✨')),
+            const SnackBar(content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 16),
+                SizedBox(width: 8),
+                Text('体检报告已保存'),
+              ],
+            )),
           );
           context.go('/reports');
         }
@@ -334,6 +340,26 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
     );
   }
 
+  Widget _buildStepHeader(String number, String title) {
+    return Row(
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: CrayonTheme.forestGreen,
+            borderRadius: BorderRadius.circular(CrayonTheme.radiusSm),
+          ),
+          child: Center(
+            child: Text(number, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(title, style: CrayonTheme.crayonTextTheme.titleMedium),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final persons = ref.watch(personsProvider);
@@ -342,7 +368,14 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
       backgroundColor: CrayonTheme.creamWhite,
       appBar: AppBar(
         backgroundColor: CrayonTheme.creamWhite,
-        title: const Text('导入体检报告 📄'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('导入体检报告'),
+            const SizedBox(width: 8),
+            Icon(Icons.upload_file, size: 20, color: CrayonTheme.brickRed),
+          ],
+        ),
         centerTitle: true,
         foregroundColor: CrayonTheme.darkBrown,
       ),
@@ -355,7 +388,7 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('1️⃣ 选择PDF文件', style: CrayonTheme.crayonTextTheme.titleMedium),
+                  _buildStepHeader('1', '选择PDF文件'),
                   const SizedBox(height: CrayonTheme.spacingMd),
                   if (_fileName == null)
                     CrayonButton(text: '选择文件', icon: Icons.upload_file, onPressed: _pickPdfFile, isFullWidth: true)
@@ -391,7 +424,13 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                   if (_status == ImportPageStatus.extracted)
                     Padding(
                       padding: const EdgeInsets.only(top: CrayonTheme.spacingSm),
-                      child: Text('已提取 ${_parsedIndicators.length} 个指标 ✨', style: const TextStyle(color: CrayonTheme.forestGreen)),
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle, color: CrayonTheme.forestGreen, size: 16),
+                          const SizedBox(width: 4),
+                          Text('已提取 ${_parsedIndicators.length} 个指标', style: const TextStyle(color: CrayonTheme.forestGreen)),
+                        ],
+                      ),
                     ),
                 ],
               ),
@@ -403,7 +442,7 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('2️⃣ 选择家庭成员', style: CrayonTheme.crayonTextTheme.titleMedium),
+                  _buildStepHeader('2', '选择家庭成员'),
                   const SizedBox(height: CrayonTheme.spacingMd),
                   if (persons.isEmpty)
                     Text('暂无家庭成员', style: TextStyle(color: CrayonTheme.darkBrown.withValues(alpha: 0.6)))
@@ -427,7 +466,7 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('3️⃣ 设置体检时间', style: CrayonTheme.crayonTextTheme.titleMedium),
+                  _buildStepHeader('3', '设置体检时间'),
                   const SizedBox(height: CrayonTheme.spacingMd),
                   GestureDetector(
                     onTap: _selectDate,
@@ -462,7 +501,7 @@ class _ReportImportPageState extends ConsumerState<ReportImportPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('4️⃣ 提取的健康指标', style: CrayonTheme.crayonTextTheme.titleMedium),
+                    _buildStepHeader('4', '提取的健康指标'),
                     const SizedBox(height: CrayonTheme.spacingMd),
                     Row(
                       children: [

@@ -52,7 +52,7 @@ class CrayonInput extends StatelessWidget {
                 if (isRequired)
                   const Padding(
                     padding: EdgeInsets.only(left: 4),
-                    child: Text('✏️', style: TextStyle(fontSize: 12)),
+                    child: Icon(Icons.edit, size: 12, color: CrayonTheme.forestGreen),
                   ),
               ],
             ),
