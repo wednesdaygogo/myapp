@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
@@ -21,12 +21,15 @@ class HealthReportsNotifier extends StateNotifier<List<HealthReport>> {
   }
 
   /// Load reports from Hive on initialization
-  Future<void> _loadFromHive() async {
+  void _loadFromHive() {
     try {
+      // Hive boxes 已经在 main() 中打开
       final box = Hive.box<HealthReport>(healthReportsBoxName);
       state = box.values.toList();
-    } catch (e) {
-      // Box might not be opened yet
+      debugPrint('HealthReportsNotifier: Loaded ${state.length} reports');
+    } catch (e, stackTrace) {
+      debugPrint('HealthReportsNotifier: Error loading from Hive: $e');
+      debugPrint('StackTrace: $stackTrace');
       state = [];
     }
   }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../data/models/person.dart';
@@ -13,8 +14,9 @@ class PersonsNotifier extends StateNotifier<List<Person>> {
   }
 
   /// Load persons from Hive on initialization
-  Future<void> _loadFromHive() async {
+  void _loadFromHive() {
     try {
+      // Hive boxes 已经在 main() 中打开
       final box = Hive.box<Person>(personsBoxName);
       final persons = box.values.toList();
       state = persons;
@@ -24,8 +26,11 @@ class PersonsNotifier extends StateNotifier<List<Person>> {
         final maxId = persons.map((p) => p.id).reduce((a, b) => a > b ? a : b);
         _nextId = maxId + 1;
       }
-    } catch (e) {
-      // Box might not be opened yet
+
+      debugPrint('PersonsNotifier: Loaded ${persons.length} persons, nextId = $_nextId');
+    } catch (e, stackTrace) {
+      debugPrint('PersonsNotifier: Error loading from Hive: $e');
+      debugPrint('StackTrace: $stackTrace');
       state = [];
     }
   }

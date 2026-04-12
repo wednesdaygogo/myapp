@@ -9,20 +9,42 @@ import 'data/models/person.dart';
 import 'data/models/health_report.dart';
 import 'data/models/health_indicator.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 添加全局错误处理
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('FlutterError: ${details.exception}');
+    debugPrint('StackTrace: ${details.stack}');
+  };
 
   // Initialize pdfrx for PDF processing
   pdfrxFlutterInitialize();
 
-  await Hive.initFlutter();
-  Hive.registerAdapter(PersonAdapter());
-  Hive.registerAdapter(HealthReportAdapter());
-  Hive.registerAdapter(HealthIndicatorAdapter());
+  try {
+    // 初始化 Hive
+    await Hive.initFlutter();
 
-  await Hive.openBox<Person>('persons');
-  await Hive.openBox<HealthReport>('healthReports');
-  await Hive.openBox<HealthIndicator>('healthIndicators');
+    // 注册 adapters
+    Hive.registerAdapter(PersonAdapter());
+    Hive.registerAdapter(HealthReportAdapter());
+    Hive.registerAdapter(HealthIndicatorAdapter());
+
+    // 打开所有 boxes，确保在创建 ProviderScope 之前完成
+    final personsBox = await Hive.openBox<Person>('persons');
+    final reportsBox = await Hive.openBox<HealthReport>('healthReports');
+    final indicatorsBox = await Hive.openBox<HealthIndicator>('healthIndicators');
+
+    debugPrint('Hive boxes opened successfully');
+    debugPrint('Persons box: ${personsBox.length} items');
+    debugPrint('Reports box: ${reportsBox.length} items');
+    debugPrint('Indicators box: ${indicatorsBox.length} items');
+  } catch (e, stackTrace) {
+    debugPrint('Error initializing Hive: $e');
+    debugPrint('StackTrace: $stackTrace');
+    // 即使初始化失败也继续运行应用
+  }
 
   runApp(const ProviderScope(child: MyApp()));
 }
