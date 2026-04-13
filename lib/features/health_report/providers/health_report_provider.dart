@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../data/models/health_report.dart';
 import '../../../data/models/health_indicator.dart';
 import '../../../data/models/person.dart';
+import '../../../main.dart' show hiveReadyProvider;
 import '../../person/providers/person_provider.dart';
 
 /// Hive box names
@@ -17,7 +18,22 @@ class HealthReportsNotifier extends StateNotifier<List<HealthReport>> {
   final Ref _ref;
 
   HealthReportsNotifier(this._ref) : super([]) {
-    _loadFromHive();
+    // 不在构造函数中加载，等待Hive准备好
+    _waitForHive();
+  }
+
+  /// 等待Hive初始化完成后再加载
+  void _waitForHive() {
+    _ref.listen<bool>(hiveReadyProvider, (previous, next) {
+      if (next) {
+        _loadFromHive();
+      }
+    });
+
+    // 如果已经准备好了，直接加载
+    if (_ref.read(hiveReadyProvider)) {
+      _loadFromHive();
+    }
   }
 
   /// Load reports from Hive on initialization

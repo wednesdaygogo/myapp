@@ -2,15 +2,32 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../data/models/person.dart';
+import '../../../main.dart' show hiveReadyProvider;
 
 const String personsBoxName = 'persons';
 
 /// Persons state notifier - manages the list of persons with Hive persistence
 class PersonsNotifier extends StateNotifier<List<Person>> {
   int _nextId = 1;
+  final Ref _ref;
 
-  PersonsNotifier() : super([]) {
-    _loadFromHive();
+  PersonsNotifier(this._ref) : super([]) {
+    // 不在构造函数中加载，等待Hive准备好
+    _waitForHive();
+  }
+
+  /// 等待Hive初始化完成后再加载
+  void _waitForHive() {
+    _ref.listen<bool>(hiveReadyProvider, (previous, next) {
+      if (next) {
+        _loadFromHive();
+      }
+    });
+
+    // 如果已经准备好了，直接加载
+    if (_ref.read(hiveReadyProvider)) {
+      _loadFromHive();
+    }
   }
 
   /// Load persons from Hive on initialization
@@ -102,7 +119,7 @@ class PersonsNotifier extends StateNotifier<List<Person>> {
 /// All persons list provider
 final personsProvider =
     StateNotifierProvider<PersonsNotifier, List<Person>>((ref) {
-  return PersonsNotifier();
+  return PersonsNotifier(ref);
 });
 
 /// Selected person ID
